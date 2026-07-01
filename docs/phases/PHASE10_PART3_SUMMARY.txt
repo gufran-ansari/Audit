@@ -1,0 +1,173 @@
+PHASE 10 — PART 3: UI/UX Consistency Review
+==============================================
+Status: COMPLETE
+
+No redesign. Only polish and consistency fixes.
+
+WHAT WAS DONE:
+==============
+
+1. DESIGN TOKENS (CSS Custom Properties)
+
+   PROBLEM: Colors, radii, and shadows were hardcoded across 400+ lines
+   of CSS with inconsistent values. The same brand color appeared as
+   #4f46e5, #6366f1, and #4338ca without clear intent.
+
+   SOLUTION: Introduced a complete token system in :root:
+   - Brand scale: --brand-50 through --brand-800
+   - Neutral scale: --gray-50 through --gray-900
+   - Status colors: --success-bg/text, --warning-bg/text, --danger-bg/text, --info-bg/text
+   - Layout radii: --radius-sm (0.375rem), --radius-md (0.5rem), --radius-lg (0.75rem), --radius-xl (1rem), --radius-full
+   - Shadow scale: --shadow-sm, --shadow-md, --shadow-lg
+   - Surface tokens: --surface-primary, --surface-secondary, --surface-elevated
+   - Text tokens: --text-primary, --text-secondary, --text-muted
+   - Border tokens: --border-default, --border-subtle
+
+   All tokens auto-switch in dark mode via a single override block.
+
+2. DARK MODE CONSISTENCY
+
+   PROBLEM: Dark mode had two competing declarations (line 219 and line 330),
+   with incomplete coverage. Cards, modals, drawers, skeletons, and form
+   inputs had inconsistent dark backgrounds.
+
+   SOLUTION: Single dark mode block that overrides the design tokens.
+   Every component now inherits correct colors from tokens instead of
+   duplicating dark-mode overrides. Added:
+   - Skeleton dark variant
+   - Drawer dark background
+   - Proper scrollbar dark colors
+   - Consistent surface colors across all components
+
+3. BADGE CONSISTENCY
+
+   PROBLEM: Two badge systems (.badge with radius-full and .status-badge
+   with radius-sm) creating visual inconsistency between dashboard table
+   and report page.
+
+   SOLUTION: Unified both into a single system using --radius-full.
+   Both .badge and .status-badge now share identical sizing (padding,
+   font-size, line-height). Colors use design tokens so they auto-adapt
+   to dark mode.
+
+4. BUTTON CONSISTENCY
+
+   PROBLEM: Only .btn-primary and .btn-secondary existed. No .btn-danger.
+   Padding and radius values differed between custom buttons and Tailwind
+   utility buttons in the HTML.
+
+   SOLUTION: Complete button set (.btn-primary, .btn-secondary, .btn-danger)
+   with consistent padding (0.5rem 1rem), radius (--radius-md), font-size
+   (0.875rem), and hover/active states.
+
+5. FORM INPUT CONSISTENCY
+
+   PROBLEM: Inputs had different focus styles depending on which phase
+   added them. Some had box-shadow focus, others had ring via Tailwind.
+
+   SOLUTION: All native input types get consistent focus:
+   border-color → brand-500, box-shadow → 3px brand/10% opacity.
+   Placeholder color uses --text-muted token.
+
+6. TABLE CONSISTENCY
+
+   PROBLEM: Table heading styles varied between pages. Some used px-6 py-4,
+   others px-4 py-3. Font weight was sometimes semibold, sometimes medium.
+
+   SOLUTION: Standardized via CSS:
+   - th: 0.7rem, uppercase, 600 weight, letter-spacing
+   - td: 0.875rem, consistent padding
+   - Mobile: reduced padding at 768px breakpoint
+
+7. BORDER RADIUS CONSISTENCY
+
+   PROBLEM: Three different values used for cards (0.5rem, 0.75rem, 1rem)
+   depending on when the code was written.
+
+   SOLUTION: Cards use --radius-lg (0.75rem) universally. Mobile cards
+   reduce to --radius-md. Pills/badges use --radius-full. Inputs use
+   --radius-md. Buttons use --radius-md.
+
+8. SPACING CONSISTENCY
+
+   PROBLEM: Module chips used different padding values than filter chips.
+   Quick actions had different padding than stat cards.
+
+   SOLUTION: Unified chip padding (0.375rem 0.75rem). Cards and actions
+   inherit consistent spacing from their component classes.
+
+9. SHADOW CONSISTENCY
+
+   PROBLEM: Shadows varied between phases. Some cards used 
+   `0 1px 3px rgba(0,0,0,0.05)`, others `0 2px 8px rgba(0,0,0,0.04)`.
+
+   SOLUTION: Three-level shadow scale (--shadow-sm, --shadow-md, --shadow-lg)
+   applied consistently. Cards rest at --shadow-sm, hover to --shadow-md.
+   Modals and drawers use --shadow-lg. Dark mode has deeper shadows.
+
+10. ANIMATION CONSISTENCY
+
+    PROBLEM: Multiple @keyframes with slightly different names/values
+    for the same effect (modalFadeIn defined twice with different 
+    scale values).
+
+    SOLUTION: Single set of animations:
+    - fadeIn (general enter)
+    - slideInLeft (sidebar)
+    - slideInRight (toasts)
+    - fadeInDown (dropdowns)
+    - modalFadeIn (dialogs)
+    - spin (loaders)
+    - skeleton-loading (placeholders)
+
+11. SCROLLBAR CONSISTENCY
+
+    PROBLEM: Scrollbar width was 8px in main file, 6px in report.php.
+    Dark mode scrollbar only covered one selector.
+
+    SOLUTION: Unified to 6px width (slimmer, modern) with proper
+    dark mode variant using design tokens.
+
+12. PRINT CONSISTENCY
+
+    PROBLEM: Print styles only hid sidebar/header/buttons. Report page
+    had its own separate print block. Cards kept shadows in print.
+
+    SOLUTION: Unified print block hides all interactive UI, removes
+    shadows, forces white background, and reduces table font size.
+
+WHAT WAS PRESERVED:
+==================
+- All class names (no HTML changes needed)
+- All existing component behavior
+- All Tailwind utility classes still work alongside
+- Dark mode toggle mechanism unchanged
+- All JavaScript functionality unchanged
+- Report page inline styles still take precedence where needed
+
+DESIGN SYSTEM SUMMARY:
+======================
+
+| Token         | Light           | Dark            |
+|---------------|-----------------|-----------------|
+| surface       | #ffffff         | #1f2937         |
+| background    | #f9fafb         | #111827         |
+| text          | #1f2937         | #f1f5f9         |
+| text-muted    | #9ca3af         | #64748b         |
+| border        | #e5e7eb         | #374151         |
+| brand         | #4f46e5         | #4f46e5         |
+
+| Component     | Radius          | Shadow          |
+|---------------|-----------------|-----------------|
+| Card          | 0.75rem (lg)    | sm → md hover   |
+| Button        | 0.5rem (md)     | none → hover    |
+| Badge         | 9999px (full)   | none            |
+| Input         | 0.5rem (md)     | focus ring      |
+| Chip          | 9999px (full)   | none            |
+| Modal         | 0.75rem (lg)    | lg              |
+
+FILE MODIFIED:
+==============
+- assets/css/styles.css — Complete rewrite as unified design system (444 lines)
+  - From: fragmented CSS accumulated across 10 phases
+  - To: token-based system with single dark mode override, consistent components

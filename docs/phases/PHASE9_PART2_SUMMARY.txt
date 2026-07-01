@@ -1,0 +1,145 @@
+PHASE 9 — PART 2: Security Hardening
+=======================================
+Status: COMPLETE
+
+No functionality was changed. Only security improvements were applied.
+
+WHAT WAS BUILT:
+===============
+
+1. SECURITY SERVICE (app/Services/SecurityService.php)
+   - applyHeaders(): X-Frame-Options, X-Content-Type-Options, X-XSS-Protection,
+     Referrer-Policy, Permissions-Policy, Content-Security-Policy
+   - applyApiHeaders(): nosniff, DENY framing, no-cache for API responses
+   - generateFingerprint(): Session fingerprinting (User-Agent + Accept-Language hash)
+   - validateFingerprint(): Detect session hijacking
+   - rotateSessionIfNeeded(): Auto-regenerate session ID every 15 minutes
+   - escHtml(), escJs(), escUrl(): Output escaping for different contexts
+   - safeInt(): Integer validation with range enforcement
+   - sanitizeFilename(): Strip dangerous chars, prevent path traversal
+   - isStrongPassword(): Password strength validation
+   - getClientIp(): Reliable IP detection (CF, X-Forwarded-For, etc.)
+
+2. RATE LIMITER (app/Services/RateLimiter.php)
+   - File-based (no Redis required, shared hosting compatible)
+   - attempt(key, maxAttempts, windowSeconds): Record + check limits
+   - remaining(): Check remaining attempts without recording
+   - retryAfter(): Get lockout remaining time
+   - clear(): Reset limit (e.g., after successful login)
+   - cleanup(): Remove stale rate limit files
+   - Storage: storage/rate_limits/*.limit (gitignored)
+
+3. INPUT VALIDATOR (app/Services/InputValidator.php)
+   - string(): Trim + length validation
+   - integer(): Type-safe int validation with range
+   - email(): Normalized email validation
+   - url(): URL format validation
+   - inList(): Whitelist validation
+   - slug(): URL-safe slug validation
+   - escapeHtml(): Output escaping
+   - json(): JSON string validation
+   - intArray(): Array of positive integers
+   - csvList(): Comma-separated value parsing with allowlist
+   - fileUpload(): MIME type, size, filename validation (future-ready)
+
+4. SESSION HARDENING (bootstrap.php)
+   - session.use_strict_mode = 1 (reject uninitialized session IDs)
+   - session.sid_length = 48 (longer session IDs)
+   - session.sid_bits_per_character = 6 (more entropy per character)
+   - Session fingerprinting (validates User-Agent consistency)
+   - Automatic session ID rotation every 15 minutes
+   - Secure cookie flags enforced
+
+5. SECURITY HEADERS (bootstrap.php)
+   Applied on every request:
+   - X-Frame-Options: SAMEORIGIN (prevents clickjacking)
+   - X-Content-Type-Options: nosniff (prevents MIME sniffing)
+   - X-XSS-Protection: 1; mode=block (legacy XSS filter)
+   - Referrer-Policy: strict-origin-when-cross-origin
+   - Permissions-Policy: camera=(), microphone=(), geolocation=()
+   - Content-Security-Policy (tailored for Tailwind CDN + Bootstrap Icons)
+
+6. RATE LIMITING FOR LOGIN
+   - 5 attempts per IP per 15-minute window
+   - After 5 failures: lockout with time-based message
+   - Cleared automatically on successful login
+   - Applied to both form login and API login
+   - HTTP 429 response for API rate limits
+
+7. SECURE COOKIES
+   - Remember-me cookie: httponly=true, samesite=Lax
+   - Session cookie: httponly, samesite, secure (when configured)
+
+8. INPUT HANDLING IMPROVEMENTS
+   - JSON body read once (cached via static variable)
+   - Prevents repeated php://input reads (which fail on re-read)
+   - jsonResponse includes X-Content-Type-Options header
+
+9. ERROR HANDLING
+   - Production: never exposes file paths, stack traces, or internal details
+   - Production JSON errors: generic message only
+   - Debug mode: plain-text output (no HTML rendering of user input)
+   - All exceptions logged with file/line information
+
+10. SQL INJECTION PREVENTION
+    - Already mitigated: All queries use parameterized statements (PDO prepared)
+    - Database class enforces parameter binding in query(), insert(), execute()
+    - No raw SQL concatenation anywhere in the codebase
+
+11. XSS PREVENTION
+    - sanitize() function uses htmlspecialchars with ENT_QUOTES
+    - SecurityService::escHtml() for explicit output escaping
+    - Report: all user data passes through htmlspecialchars in PHP templates
+    - JSON output uses JSON_HEX_TAG | JSON_HEX_AMP flags
+    - CSP header restricts inline script execution context
+
+12. CSRF PROTECTION
+    - Already implemented via CsrfMiddleware
+    - Token verified on all POST/PUT/DELETE/PATCH requests
+    - Token available via X-CSRF-TOKEN header (for AJAX)
+    - hash_equals() used for timing-safe comparison
+
+FILES CREATED:
+==============
+- app/Services/SecurityService.php
+- app/Services/RateLimiter.php
+- app/Services/InputValidator.php
+- storage/rate_limits/.gitkeep
+
+FILES MODIFIED:
+===============
+- app/bootstrap.php
+  → Added session hardening settings
+  → Added SecurityService header/fingerprint/rotation calls
+  → Improved exception handler (no info leak in production)
+
+- app/Controllers/AuthController.php
+  → Added rate limiting to login()
+  → Added rate limiting to apiLogin()
+  → Secure cookie flags for remember_me
+  → Clear rate limit on successful login
+
+- app/Helpers/helpers.php
+  → Cached JSON body reading (static variable)
+  → jsonResponse includes nosniff header
+
+- .gitignore
+  → Added storage/rate_limits/*.limit exclusion
+
+SECURITY CHECKLIST:
+==================
+✓ CSRF validation on all state-changing requests
+✓ Session hardening (strict mode, long IDs, rotation, fingerprint)
+✓ Permission verification (AuthMiddleware + RoleMiddleware)
+✓ SQL injection prevention (parameterized queries everywhere)
+✓ XSS prevention (htmlspecialchars, CSP, output escaping)
+✓ Input validation (InputValidator, sanitize helper)
+✓ Output escaping (escHtml, escJs, escUrl methods)
+✓ File upload validation (future-ready InputValidator::fileUpload)
+✓ Secure password handling (password_hash/verify, strength check)
+✓ Rate limiting for login (5 attempts / 15 min window)
+✓ Secure cookies (httponly, samesite, secure flags)
+✓ Better error handling (no info leak in production)
+✓ Security headers (CSP, X-Frame-Options, nosniff, etc.)
+✓ Session hijacking detection (fingerprinting)
+✓ Shared hosting compatible (file-based, no external deps)

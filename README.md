@@ -1,244 +1,165 @@
 # Audit withGufran
 
-A modular web application for audit management with modern UI/UX and responsive design.
+A production-ready SEO audit platform. Crawl sitemaps, audit pages across 7 modules, generate client-facing reports, and manage results — all from a single dashboard.
 
-## Phase 1: Base UI/UX and Responsive Layout ✅
+## Requirements
 
-This phase establishes the foundation of the application with:
-- Clean, modern dashboard layout
-- Responsive design (mobile, tablet, desktop)
-- App-like interactions and animations
-- Modular architecture for future expansion
+- PHP 8.0+
+- MySQL 5.7+ / MariaDB 10.3+
+- Apache with mod_rewrite (shared hosting compatible)
+- cURL extension enabled
 
----
+## Quick Start
 
-## Project Structure
+```bash
+# 1. Clone and configure
+cp .env.example .env
+# Edit .env with your database credentials and APP_URL
+
+# 2. Create database
+mysql -u root -p < database/migrations.sql
+
+# 3. Run additional migrations (in order)
+mysql -u root -p audit_withgufran < database/migrations_phase4_part3.sql
+mysql -u root -p audit_withgufran < database/migrations_phase5_part2.sql
+mysql -u root -p audit_withgufran < database/migrations_phase6_part1.sql
+mysql -u root -p audit_withgufran < database/migrations_phase6_part2.sql
+mysql -u root -p audit_withgufran < database/migrations_phase7_part1.sql
+mysql -u root -p audit_withgufran < database/migrations_phase8_part1.sql
+mysql -u root -p audit_withgufran < database/migrations_phase8_part2.sql
+mysql -u root -p audit_withgufran < database/migrations_phase8_part3.sql
+mysql -u root -p audit_withgufran < database/migrations_phase9_part1.sql
+
+# 4. Set permissions
+chmod 755 storage/cache storage/logs storage/rate_limits
+
+# 5. Set up cron (if available)
+# Add to crontab:
+# * * * * * php /path/to/Audit/cron/process_jobs.php >> /path/to/Audit/storage/logs/cron.log 2>&1
+# 0 3 * * * php /path/to/Audit/cron/maintenance.php >> /path/to/Audit/storage/logs/maintenance.log 2>&1
+
+# 6. Login
+# Default: admin@auditwithgufran.com / admin123
+# CHANGE THIS IMMEDIATELY after first login.
+```
+
+## Architecture
 
 ```
 Audit/
-├── index.html          # Main dashboard page
-├── assets/
-│   ├── css/
-│   │   └── styles.css  # Custom styles and animations
-│   ├── js/
-│   │   └── app.js      # Base JavaScript functionality
-│   ├── icons/          # Icon files (for future use)
-│   └── images/         # Image assets (for future use)
-└── README.md           # Project documentation
+├── app/                    # Application code
+│   ├── Controllers/        # Auth controller
+│   ├── Helpers/            # Global helper functions
+│   ├── Jobs/               # Background job processing
+│   ├── Middleware/         # Auth, CSRF, Role, Performance
+│   ├── Models/             # User model
+│   ├── Modules/            # Feature modules (controller/service/repository pattern)
+│   │   ├── AuditEngine/    # Audit orchestration
+│   │   ├── Dashboard/      # Dashboard overview + search + notifications
+│   │   ├── FaqSchemaAudit/ # FAQ schema audit module
+│   │   ├── H1Audit/        # H1 tag audit module
+│   │   ├── LoremAudit/     # Lorem ipsum detection
+│   │   ├── MetaAudit/      # Meta tag audit module
+│   │   ├── NoindexAudit/   # Noindex detection
+│   │   ├── Overrides/      # Manual override system
+│   │   ├── Pages/          # URL/page management
+│   │   ├── Projects/       # Project management
+│   │   ├── Reports/        # Report generation + data loader
+│   │   ├── Settings/       # System settings + admin management
+│   │   ├── Sitemaps/       # Sitemap discovery + import
+│   │   ├── StagingAudit/   # Staging URL detection
+│   │   └── WordOccurrenceAudit/  # Keyword occurrence
+│   ├── Services/           # Shared services
+│   └── bootstrap.php       # Application initialization
+├── assets/                 # Frontend assets (CSS, JS)
+├── config/                 # Configuration files
+├── cron/                   # Scheduled tasks
+├── database/               # Migrations + Database class
+├── routes/                 # API route handlers
+├── storage/                # Logs, cache, rate limits
+└── templates/              # Shared templates
 ```
 
----
+## Modules
 
-## Features Implemented
+| Module | Description |
+|--------|-------------|
+| H1 Audit | Validates H1 tags (missing, duplicate, empty) |
+| Meta Audit | Checks meta title and description |
+| Noindex Audit | Detects noindex/nofollow directives |
+| FAQ Schema | Validates FAQ structured data |
+| Lorem Ipsum | Detects placeholder text |
+| Staging URLs | Finds staging/dev URLs in content |
+| Word Occurrence | Counts keyword occurrences |
 
-### 1. **Dashboard Layout**
-- Sidebar navigation with gradient background
-- Top bar with search and notifications
-- Main workspace area for content
-- Fully responsive across all devices
+## Key Features
 
-### 2. **Sidebar Navigation**
-- Dashboard
-- New Audit
-- History
-- Reports
-- Settings
-- User profile section
+- **Project Management** — Create projects, import sitemaps, manage URLs
+- **Automated Auditing** — Background job processing with batch execution
+- **7 Audit Modules** — Comprehensive SEO checks
+- **Public Reports** — Shareable client-facing report URLs (`/report/slug`)
+- **Interactive Reports** — Filter, search, sort, expand audit details
+- **PDF/CSV Export** — Download audit results
+- **Manual Overrides** — Admin workflow without modifying audit data
+- **Global Search** — Ctrl+K to search projects, URLs, reports
+- **Notifications** — In-app notification system
+- **Settings** — Centralized configuration (Super Admin)
+- **Admin Management** — Create/deactivate admin users
+- **Dark Mode** — Full theme support
+- **Rate Limiting** — Login protection (5 attempts/15 min)
+- **Security Headers** — CSP, X-Frame-Options, HSTS-ready
 
-### 3. **Statistics Cards**
-- Total Audits (with trend indicator)
-- Pending Reviews
-- Completed Audits
-- Issues Found
+## Configuration
 
-### 4. **Quick Actions**
-- Start New Audit (primary action)
-- Import Data
-- Generate Report
+All configuration is via `.env` file and the Settings UI (Super Admin only).
 
-### 5. **Audit Results Table**
-- Desktop: Full table view with sortable columns
-- Mobile: Card-based layout
-- Status badges (Completed, In Progress, Pending)
-- Priority indicators (High, Medium, Low)
-- Action buttons (View, Edit, Delete)
-- Pagination controls
+Key environment variables:
+- `APP_DEBUG` — Set to `false` in production
+- `APP_URL` — Your full domain URL
+- `SESSION_SECURE` — Set to `true` if using HTTPS
+- `DB_*` — Database connection details
 
-### 6. **Responsive Behavior**
-- **Mobile (<768px)**: Collapsible sidebar, card-based tables
-- **Tablet (768px-1024px)**: Optimized spacing and layout
-- **Desktop (>1024px)**: Full sidebar always visible, table view
+## Cron Jobs
 
----
+| Schedule | Script | Purpose |
+|----------|--------|---------|
+| Every minute | `cron/process_jobs.php` | Process audit job queue |
+| Daily at 3am | `cron/maintenance.php` | Cache cleanup, log rotation |
 
-## Technologies Used
+On shared hosting without cron, jobs can be triggered via `routes/jobs.php?action=process`.
 
-- **HTML5**: Semantic markup
-- **Tailwind CSS**: Utility-first styling via CDN
-- **Vanilla JavaScript**: No framework dependencies
-- **Font Awesome**: Icon library
-- **CSS3**: Custom animations and transitions
+## Security
 
----
+- CSRF protection on all mutations
+- Rate-limited login (file-based, no Redis needed)
+- Session fingerprinting + rotation
+- Parameterized SQL queries (PDO)
+- XSS prevention (output escaping + CSP)
+- Security headers on all responses
+- No sensitive files accessible via web (.env, config, app, database blocked)
 
-## Module Attachment Points
+## API Endpoints
 
-The codebase is structured with clear attachment points for future modules:
+All admin endpoints require authentication. Public report endpoints require valid slug + public visibility.
 
-### Navigation Module
-- Location: Sidebar `<nav>` element
-- Purpose: Dynamic menu generation, routing
-
-### Statistics Module
-- Location: Stats cards section
-- Purpose: Real-time data updates, filtering
-
-### Audit Data Table Module
-- Location: Main table container
-- Purpose: Data fetching, sorting, filtering, CRUD operations
-
-### Search Module
-- Location: Top bar search input
-- Purpose: Full-text search, filter integration
-
-### Notification Module
-- Location: Top bar notification bell
-- Purpose: Real-time notifications, alerts
-
-### Authentication Module
-- Location: User profile section in sidebar
-- Purpose: Login/logout, user management
-
-### Modal System
-- Purpose: Confirmations, forms, detail views
-
-### Data Export Module
-- Location: Export button in table header
-- Purpose: CSV, PDF, Excel generation
-
-### Loading States
-- Purpose: Spinners, skeleton screens
-
-### Toast Notifications
-- Purpose: Success/error messages
-
----
-
-## Design Principles
-
-### 1. **App-like Interactions**
-- Smooth transitions and animations
-- Hover effects with elevation
-- Active states for navigation
-- Touch-friendly mobile interface
-
-### 2. **Modularity**
-- Clear separation of concerns
-- Commented attachment points
-- Scalable architecture
-- Independent component logic
-
-### 3. **Accessibility**
-- Semantic HTML structure
-- ARIA labels (to be added in Phase 2)
-- Keyboard navigation support
-- Focus states for interactive elements
-
-### 4. **Performance**
-- Minimal dependencies
-- Optimized animations
-- Debounced search input
-- Lazy loading ready
-
----
-
-## Browser Compatibility
-
-- Chrome/Edge: ✅ Full support
-- Firefox: ✅ Full support
-- Safari: ✅ Full support
-- Mobile browsers: ✅ Fully responsive
-
----
-
-## Next Phases (Planned)
-
-### Phase 2: Backend Integration
-- API endpoints setup
-- Authentication system
-- Database schema
-- Real data integration
-
-### Phase 3: Advanced Features
-- Audit workflow management
-- Real-time collaboration
-- Advanced filtering and search
-- Analytics and reporting
-
-### Phase 4: Optimization
-- Performance tuning
-- Progressive Web App (PWA)
-- Offline support
-- Advanced caching
-
----
-
-## Usage
-
-Simply open `index.html` in a modern web browser. No build process required for Phase 1.
-
-```bash
-# Option 1: Direct file open
-open index.html
-
-# Option 2: Simple HTTP server
-python -m http.server 8000
-# Then visit: http://localhost:8000
-
-# Option 3: VS Code Live Server
-# Right-click index.html > Open with Live Server
-```
-
----
-
-## Naming Conventions
-
-- **CSS Classes**: Tailwind utility classes + custom classes in kebab-case
-- **JavaScript**: camelCase for variables and functions
-- **HTML IDs**: camelCase for element identification
-- **File Names**: lowercase with hyphens
-
----
-
-## Development Notes
-
-### Module Integration Process
-1. Locate the `MODULE ATTACHMENT POINT` comment
-2. Integrate your module code at that location
-3. Maintain existing styling and structure
-4. Test responsive behavior
-5. Update this README with module details
-
-### Commenting Standards
-- Use clear, descriptive comments
-- Mark all module attachment points
-- Document complex logic
-- Include TODO notes for future enhancements
-
----
+| Route | Auth | Purpose |
+|-------|------|---------|
+| `routes/projects.php` | Yes | Project CRUD |
+| `routes/pages.php` | Yes | URL management |
+| `routes/sitemaps.php` | Yes | Sitemap operations |
+| `routes/jobs.php` | Yes | Job management |
+| `routes/reports.php` | Yes | Report admin |
+| `routes/overrides.php` | Yes | Manual overrides |
+| `routes/settings.php` | Super Admin | System settings |
+| `routes/dashboard.php` | Yes | Dashboard data |
+| `report.php` | No | Public report page |
+| `routes/report-api.php` | No | Paginated report data |
+| `routes/report-export.php` | No | CSV export |
 
 ## License
 
-Proprietary - Audit withGufran
+Proprietary — Audit withGufran by Codezyners
 
----
+## Version
 
-## Contact
-
-For questions or feature requests, contact Gufran.
-
----
-
-**Status**: Phase 1 Complete ✅  
-**Last Updated**: June 14, 2026  
-**Version**: 1.0.0
+**1.9.0** — Production Ready

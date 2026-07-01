@@ -1,0 +1,68 @@
+RewriteEngine On
+
+# ==============================================
+# SEO: Prevent indexing of the entire application
+# ==============================================
+<IfModule mod_headers.c>
+    Header set X-Robots-Tag "noindex, nofollow"
+</IfModule>
+
+# ==============================================
+# SECURITY: Block access to sensitive files/directories
+# ==============================================
+# Block .env, .git, storage, database, config, app directories
+RedirectMatch 403 /\.env
+RedirectMatch 403 /\.git
+RewriteRule ^storage/ - [F,L]
+RewriteRule ^database/ - [F,L]
+RewriteRule ^config/ - [F,L]
+RewriteRule ^app/ - [F,L]
+RewriteRule ^cron/ - [F,L]
+RewriteRule ^docs/ - [F,L]
+RewriteRule ^vendor/ - [F,L]
+
+# Block access to hidden files (except .htaccess)
+RewriteRule (^\.|/\.) - [F,L]
+
+# Block direct PHP file access in routes/ (must go through front endpoints)
+RewriteRule ^routes/.*\.php$ - [F,L]
+
+# ==============================================
+# REPORT ROUTES (public, no auth)
+# ==============================================
+# Report paginated API: /report/slug-here/api?action=pages&page=1
+RewriteRule ^report/([a-z0-9-]+)/api/?$ routes/report-api.php?slug=$1 [L,QSA]
+
+# Report CSV/PDF export: /report/slug-here/export?format=csv
+RewriteRule ^report/([a-z0-9-]+)/export/?$ routes/report-export.php?slug=$1 [L,QSA]
+
+# Public report pretty URL: /report/slug-here -> report.php?slug=slug-here
+RewriteRule ^report/([a-z0-9-]+)/?$ report.php?slug=$1 [L,QSA]
+
+# ==============================================
+# PERFORMANCE: Compression & Caching
+# ==============================================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType font/woff2 "access plus 1 month"
+</IfModule>
+
+# ==============================================
+# SECURITY HEADERS (fallback if not set by PHP)
+# ==============================================
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Prevent directory listing
+Options -Indexes

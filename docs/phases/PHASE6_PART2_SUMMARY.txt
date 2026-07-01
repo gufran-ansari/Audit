@@ -1,0 +1,251 @@
+================================================================================
+PHASE 6 — PART 2: SMART RETRY ENGINE + AUTO RESUME SYSTEM
+================================================================================
+
+STATUS: ✅ COMPLETE
+DATE: June 24, 2026
+
+================================================================================
+OVERVIEW
+================================================================================
+
+Implemented a smart retry engine that NEVER re-processes successful pages and
+an auto-resume system that continues interrupted audits from where they stopped.
+Pages are tracked individually per module with configurable retry limits and
+error type classification.
+
+================================================================================
+FILES CREATED
+================================================================================
+
+DATABASE:
+  database/migrations_phase6_part2.sql
+    - page_retry_tracking table
+
+BACKEND:
+  app/Services/RetryService.php
+    - Failure recording and classification
+    - Retry state management (pending → retrying → failed → exhausted → resolved)
+    - Smart skip logic (never rerun passed pages)
+    - Error type classification
+    - Retry statistics and queries
+
+  app/Services/ResumeService.php
+    - Find resumable (interrupted/paused) jobs
+    - Resume individual or all interrupted jobs
+    - Create retry-specific jobs (targeting only failed pages)
+    - Recoverable work detection
+
+  app/Jobs/RetryJobProcessor.php
+    - Specialized processor that only retries failed pages
+    - Skips successful and exhausted entries
+    - Integrates with RetryService for limit enforcement
+    - Batch processing with time limit awareness
+
+FRONTEND:
+  assets/js/project-audits.js (extended)
+    - resumeJob(), resumeAllJobs()
+    - retryFailedPages()
+    - loadRetryInfo() with recovery controls
+    - Resume button in job status panel for interrupted jobs
+
+  project.php (extended)
+    - Retry/Resume info panel (shows when recoverable work exists)
+
+================================================================================
+FILES MODIFIED
+================================================================================
+
+  app/Jobs/JobProcessor.php
+    - storeResult() now records failures in page_retry_tracking
+    - Marks pages as resolved when they succeed after previous failure
+
+  routes/jobs.php
+    - Added actions: resume, resume_all, retry, retry_stats, recoverable
+
+================================================================================
+DATABASE SCHEMA
+================================================================================
+
+TABLE: page_retry_tracking
+┌──────────────────┬──────────────────────────────────────────────┐
+│ Field            │ Description                                  │
+├──────────────────┼──────────────────────────────────────────────┤
+│ id               │ Auto-increment primary key                   │
+│ project_page_id  │ FK to project_pages                          │
+│ module_name      │ Module that failed (e.g. 'h1_audit')         │
+│ retry_count      │ Number of retry attempts made                │
+│ max_retries      │ Maximum allowed (default 3)                  │
+│ error_type       │ Classified error category                    │
+│ last_error       │ Human-readable error message                 │
+│ last_attempt_at  │ When last retry was attempted                │
+│ status           │ retry_pending|retrying|retry_failed|         │
+│                  │ retry_exhausted|resolved                     │
+│ created_at       │ First failure recorded                       │
+│ updated_at       │ Last update                                  │
+└──────────────────┴──────────────────────────────────────────────┘
+
+UNIQUE KEY: (project_page_id, module_name)
+— One tracking row per page per module.
+
+================================================================================
+SMART RETRY LOGIC
+================================================================================
+
+CORE RULE: Never rerun successful pages.
+
+Decision flow per page/module:
+  1. Does the page already have PASS result? → SKIP
+  2. Is retry status 'retry_exhausted'? → SKIP
+  3. Is retry_count < max_retries? → RETRY
+  4. Otherwise → SKIP
+
+Error classification:
+  timeout           → curl timeout or slow response
+  connection        → connection refused, unreachable
+  invalid_response  → HTTP 4xx/5xx
+  malformed_html    → DOM parsing failures
+  processing        → module-internal errors
+  unknown           → unclassified
+
+Retry state machine:
+  [First failure] → retry_pending
+  [Retry attempt] → retrying
+  [Retry fails]   → retry_failed (still < max) OR retry_exhausted (>= max)
+  [Retry succeeds] → resolved
+  [Manual reset]  → retry_pending (re-enables retries)
+
+================================================================================
+AUTO RESUME SYSTEM
+================================================================================
+
+When a job is interrupted (heartbeat timeout) or paused:
+  - The job retains its last_page_id (last successfully processed page)
+  - ResumeService re-queues the job with status='queued'
+  - JobProcessor picks it up and continues from last_page_id
+  - No pages are re-processed
+
+Resume workflow:
+  1. System detects interrupted job (heartbeat > 120s old)
+  2. Marks job as 'interrupted'
+  3. UI shows "Resume" button
+  4. User clicks → ResumeService::resumeJob() → re-queues
+  5. JobProcessor picks up → starts from last_page_id + 1
+  6. Previously processed pages are skipped
+
+================================================================================
+API ENDPOINTS (NEW)
+================================================================================
+
+POST /routes/jobs.php?action=resume
+  Params: job_id
+  Response: { success, message }
+  (Resume a single interrupted/paused job)
+
+POST /routes/jobs.php?action=resume_all
+  Params: project_id
+  Response: { success, resumed_count, message }
+  (Resume all interrupted jobs for a project)
+
+POST /routes/jobs.php?action=retry
+  Params: project_id, modules, keyword (optional)
+  Response: { success, job }
+  (Create a retry job targeting only failed pages)
+
+GET  /routes/jobs.php?action=retry_stats&project_id=X
+  Response: { success, stats, error_types }
+  (Retry statistics and error distribution)
+
+GET  /routes/jobs.php?action=recoverable&project_id=X
+  Response: { success, recoverable: {has_resumable_jobs, has_retryable_pages, ...} }
+  (Check if project has any recoverable work)
+
+================================================================================
+WORKSPACE UI
+================================================================================
+
+Retry/Resume Info Panel (appears only when needed):
+  ┌─────────────────────────────────────────────────────┐
+  │ ⚠ 2 interrupted job(s)  [Resume All]               │
+  │ ↻ 15 page(s) need retry [Retry Failed]             │
+  │ ○ 3 exhausted                                       │
+  └─────────────────────────────────────────────────────┘
+
+Job Status Panel (updated):
+  - Interrupted/Paused jobs now show [▶ Resume] button
+  - Completed/Failed jobs show final counts
+  - Running jobs show progress bar
+
+================================================================================
+INTEGRATION WITH EXISTING SYSTEM
+================================================================================
+
+JobProcessor (Phase 6 Part 1):
+  - storeResult() now automatically calls RetryService
+  - Failures → recordFailure() (creates/updates tracking row)
+  - Successes → markResolved() (clears the failure state)
+
+AuditOrchestrator (Phase 5 Part 3):
+  - Unchanged; synchronous mode doesn't use retry tracking directly
+  - Background mode (via JobProcessor) automatically integrates
+
+ModuleRegistry (Phase 5 Part 3):
+  - Used by RetryJobProcessor to resolve module keys → module_names
+
+================================================================================
+PERFORMANCE
+================================================================================
+
+Retry system is optimized for:
+  - Shared hosting (batch + time-limited processing)
+  - Large projects (indexed queries on page_retry_tracking)
+  - Low memory (processes one page at a time during retry)
+  - Minimal I/O (only fetches pages that actually need retry)
+
+Key optimization: UNIQUE KEY (project_page_id, module_name) with
+ON DUPLICATE KEY UPDATE means no duplicate tracking rows ever accumulate.
+
+================================================================================
+NOT IMPLEMENTED YET
+================================================================================
+
+  ✗ Public Reports
+  ✗ PDF/CSV Exports
+  ✗ Manual Overrides (force status without re-audit)
+  ✗ Scheduled retry (automatic periodic retry via cron)
+  ✗ Webhook notifications on completion
+
+These build on this foundation in future phases.
+
+================================================================================
+TESTING
+================================================================================
+
+To test the retry system:
+
+1. Run an audit with some URLs that will fail (404s, timeouts):
+   POST /routes/jobs.php?action=create
+   project_id=1&modules=h1,meta
+
+2. Process the job:
+   GET /routes/jobs.php?action=process
+
+3. Check retry stats:
+   GET /routes/jobs.php?action=retry_stats&project_id=1
+
+4. Retry failed pages:
+   POST /routes/jobs.php?action=retry
+   project_id=1&modules=h1,meta
+
+5. Check recoverable work:
+   GET /routes/jobs.php?action=recoverable&project_id=1
+
+To test auto-resume:
+1. Start a job, then kill the PHP process mid-execution
+2. Wait 2+ minutes (heartbeat timeout)
+3. The next cron run will mark it as interrupted
+4. Use resume endpoint or UI button to continue
+
+================================================================================
+END OF PHASE 6 PART 2 SUMMARY
+================================================================================

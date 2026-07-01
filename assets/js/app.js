@@ -1,318 +1,366 @@
 /**
  * Audit withGufran - Application JavaScript
- * Phase 1: Base UI/UX and Responsive Layout
+ * Phase 1, Part 1: Base Dashboard Layout
  * 
- * This file handles base interactions and responsive behavior
+ * This file handles base interactions for the dashboard layout
  * MODULE ATTACHMENT POINTS are marked for future feature integration
  */
 
 // ============================================
-// DOM Elements
-// ============================================
-const sidebar = document.getElementById('sidebar');
-const openSidebarBtn = document.getElementById('openSidebar');
-const closeSidebarBtn = document.getElementById('closeSidebar');
-const sidebarOverlay = document.getElementById('sidebarOverlay');
-const sidebarItems = document.querySelectorAll('.sidebar-item');
-
-// ============================================
-// Mobile Sidebar Toggle
-// MODULE ATTACHMENT POINT: Navigation state management
-// ============================================
-function openSidebar() {
-    sidebar.classList.remove('-translate-x-full');
-    sidebar.classList.add('translate-x-0');
-    sidebarOverlay.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeSidebar() {
-    sidebar.classList.add('-translate-x-full');
-    sidebar.classList.remove('translate-x-0');
-    sidebarOverlay.classList.add('hidden');
-    document.body.style.overflow = 'auto';
-}
-
-// Event Listeners for Sidebar
-if (openSidebarBtn) {
-    openSidebarBtn.addEventListener('click', openSidebar);
-}
-
-if (closeSidebarBtn) {
-    closeSidebarBtn.addEventListener('click', closeSidebar);
-}
-
-if (sidebarOverlay) {
-    sidebarOverlay.addEventListener('click', closeSidebar);
-}
-
-// Close sidebar on window resize to desktop
-window.addEventListener('resize', () => {
-    if (window.innerWidth >= 1024) {
-        closeSidebar();
-    }
-});
-
-// ============================================
-// Sidebar Navigation Active State
-// MODULE ATTACHMENT POINT: Router integration
-// ============================================
-sidebarItems.forEach(item => {
-    item.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Remove active class from all items
-        sidebarItems.forEach(i => i.classList.remove('active'));
-        
-        // Add active class to clicked item
-        this.classList.add('active');
-        
-        // Close sidebar on mobile after selection
-        if (window.innerWidth < 1024) {
-            closeSidebar();
-        }
-        
-        // MODULE ATTACHMENT POINT: Page routing logic will be added here
-        console.log('Navigation item clicked:', this.textContent.trim());
-    });
-});
-
-// ============================================
-// Table Row Click Handlers
-// MODULE ATTACHMENT POINT: Detail view navigation
+// Wait for DOM to be fully loaded
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
-    // Desktop table rows
-    const tableRows = document.querySelectorAll('tbody tr');
-    tableRows.forEach(row => {
-        row.addEventListener('click', function(e) {
-            // Don't trigger if clicking action buttons
-            if (e.target.closest('button')) {
-                return;
+    
+    // ============================================
+    // DOM Elements
+    // ============================================
+    const sidebar = document.getElementById('sidebar');
+    const openSidebarBtn = document.getElementById('openSidebar');
+    const closeSidebarBtn = document.getElementById('closeSidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    
+    // ============================================
+    // Sidebar Toggle Functions
+    // MODULE ATTACHMENT POINT: Navigation state management
+    // ============================================
+    
+    function openSidebar() {
+        if (sidebar && sidebarOverlay) {
+            sidebar.classList.remove('-translate-x-full');
+            sidebar.classList.add('translate-x-0');
+            sidebarOverlay.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function closeSidebar() {
+        if (sidebar && sidebarOverlay) {
+            sidebar.classList.add('-translate-x-full');
+            sidebar.classList.remove('translate-x-0');
+            sidebarOverlay.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    // ============================================
+    // Event Listeners
+    // ============================================
+    
+    // Open sidebar on mobile
+    if (openSidebarBtn) {
+        openSidebarBtn.addEventListener('click', openSidebar);
+    }
+    
+    // Close sidebar on mobile
+    if (closeSidebarBtn) {
+        closeSidebarBtn.addEventListener('click', closeSidebar);
+    }
+    
+    // Close sidebar when clicking overlay
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+    
+    // Close sidebar on window resize to desktop size
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 1024) {
+            closeSidebar();
+        }
+    });
+    
+    // Close sidebar on ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeSidebar();
+        }
+    });
+    
+    // ============================================
+    // Navigation Active State (Placeholder)
+    // MODULE ATTACHMENT POINT: Router integration
+    // ============================================
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    navItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            // Prevent default for placeholder links
+            if (this.getAttribute('href') === '#') {
+                e.preventDefault();
             }
             
-            // MODULE ATTACHMENT POINT: Open audit detail view
-            const auditId = this.querySelector('.text-indigo-600').textContent;
-            console.log('Opening audit details for:', auditId);
+            // Visual feedback only (no actual routing yet)
+            navItems.forEach(nav => nav.classList.remove('active'));
+            this.classList.add('active');
             
-            // Add visual feedback
-            this.classList.add('bg-indigo-50');
-            setTimeout(() => {
-                this.classList.remove('bg-indigo-50');
-            }, 300);
+            // Close sidebar on mobile after selection
+            if (window.innerWidth < 1024) {
+                closeSidebar();
+            }
         });
     });
+    
+    // ============================================
+    // Theme Toggle (Placeholder)
+    // MODULE ATTACHMENT POINT: Theme switching functionality
+    // ============================================
+    const themeToggle = document.getElementById('themeToggle');
+    let isDarkMode = false;
+    
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            isDarkMode = !isDarkMode;
+            const icon = this.querySelector('i');
+            
+            if (isDarkMode) {
+                icon.classList.remove('bi-moon');
+                icon.classList.add('bi-sun');
+                document.body.classList.add('dark-mode');
+            } else {
+                icon.classList.remove('bi-sun');
+                icon.classList.add('bi-moon');
+                document.body.classList.remove('dark-mode');
+            }
+            
+            console.log('Theme toggled:', isDarkMode ? 'dark' : 'light');
+        });
+    }
+    
+    // ============================================
+    // Detail Drawer Functions
+    // MODULE ATTACHMENT POINT: Detail view functionality
+    // ============================================
+    const detailDrawer = document.getElementById('detailDrawer');
+    const drawerOverlay = document.getElementById('drawerOverlay');
+    const closeDrawerBtn = document.getElementById('closeDrawer');
+    const tableRows = document.querySelectorAll('.table-row');
+    const mobileCards = document.querySelectorAll('.mobile-card');
+    
+    function openDrawer(urlId) {
+        if (detailDrawer && drawerOverlay) {
+            detailDrawer.classList.remove('translate-x-full');
+            detailDrawer.classList.add('translate-x-0');
+            drawerOverlay.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            
+            // Update drawer content based on urlId
+            console.log('Opening drawer for URL ID:', urlId);
+        }
+    }
+    
+    function closeDrawer() {
+        if (detailDrawer && drawerOverlay) {
+            detailDrawer.classList.add('translate-x-full');
+            detailDrawer.classList.remove('translate-x-0');
+            drawerOverlay.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    // Table row clicks
+    if (tableRows) {
+        tableRows.forEach(row => {
+            row.addEventListener('click', function(e) {
+                // Don't open drawer if clicking checkbox or action button
+                if (e.target.type === 'checkbox' || e.target.closest('button')) {
+                    return;
+                }
+                const urlId = this.getAttribute('data-url-id');
+                openDrawer(urlId);
+            });
+        });
+    }
     
     // Mobile card clicks
-    const mobileCards = document.querySelectorAll('.md\\:hidden > div');
-    mobileCards.forEach(card => {
-        card.addEventListener('click', function(e) {
-            // Don't trigger if clicking action buttons
-            if (e.target.closest('button')) {
-                return;
-            }
-            
-            // MODULE ATTACHMENT POINT: Open audit detail view
-            const auditId = this.querySelector('.text-indigo-600').textContent;
-            console.log('Opening audit details for:', auditId);
-            
-            // Add visual feedback
-            this.classList.add('bg-indigo-50');
-            setTimeout(() => {
-                this.classList.remove('bg-indigo-50');
-            }, 300);
-        });
-    });
-});
-
-// ============================================
-// Action Button Handlers
-// MODULE ATTACHMENT POINT: CRUD operations
-// ============================================
-
-// View buttons
-document.querySelectorAll('.fa-eye').forEach(btn => {
-    btn.closest('button').addEventListener('click', function(e) {
-        e.stopPropagation();
-        console.log('View action triggered');
-        // MODULE ATTACHMENT POINT: Open detail modal or page
-    });
-});
-
-// Edit buttons
-document.querySelectorAll('.fa-edit').forEach(btn => {
-    btn.closest('button').addEventListener('click', function(e) {
-        e.stopPropagation();
-        console.log('Edit action triggered');
-        // MODULE ATTACHMENT POINT: Open edit modal or page
-    });
-});
-
-// Delete buttons
-document.querySelectorAll('.fa-trash').forEach(btn => {
-    btn.closest('button').addEventListener('click', function(e) {
-        e.stopPropagation();
-        console.log('Delete action triggered');
-        // MODULE ATTACHMENT POINT: Show confirmation modal
-    });
-});
-
-// ============================================
-// Stats Card Click Handlers
-// MODULE ATTACHMENT POINT: Filter integration
-// ============================================
-document.querySelectorAll('.card-hover').forEach(card => {
-    if (card.closest('.grid')) {
-        card.addEventListener('click', function() {
-            const statType = this.querySelector('p').textContent;
-            console.log('Stat card clicked:', statType);
-            // MODULE ATTACHMENT POINT: Filter table by stat type
+    if (mobileCards) {
+        mobileCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                // Don't open drawer if clicking checkbox or action button
+                if (e.target.type === 'checkbox' || e.target.closest('button')) {
+                    return;
+                }
+                const urlId = this.getAttribute('data-url-id');
+                openDrawer(urlId);
+            });
         });
     }
-});
-
-// ============================================
-// Quick Action Button Handlers
-// MODULE ATTACHMENT POINT: Action workflows
-// ============================================
-
-// Start New Audit button (already has inline handler via button element)
-const newAuditBtn = document.querySelector('.bg-gradient-to-r');
-if (newAuditBtn) {
-    newAuditBtn.addEventListener('click', function() {
-        console.log('Starting new audit workflow');
-        // MODULE ATTACHMENT POINT: Navigate to new audit page or open modal
-    });
-}
-
-// ============================================
-// Search Functionality
-// MODULE ATTACHMENT POINT: Search/filter module
-// ============================================
-const searchInput = document.querySelector('input[placeholder*="Search"]');
-if (searchInput) {
-    let searchTimeout;
     
-    searchInput.addEventListener('input', function(e) {
-        clearTimeout(searchTimeout);
-        
-        // Debounce search to avoid excessive calls
-        searchTimeout = setTimeout(() => {
-            const query = e.target.value.trim();
-            console.log('Search query:', query);
-            // MODULE ATTACHMENT POINT: Implement search/filter logic
-        }, 300);
+    // Close drawer button
+    if (closeDrawerBtn) {
+        closeDrawerBtn.addEventListener('click', closeDrawer);
+    }
+    
+    // Close drawer on overlay click
+    if (drawerOverlay) {
+        drawerOverlay.addEventListener('click', closeDrawer);
+    }
+    
+    // Close drawer on ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeDrawer();
+        }
     });
-}
-
-// ============================================
-// Notification Bell Click
-// MODULE ATTACHMENT POINT: Notification system
-// ============================================
-const notificationBtn = document.querySelector('.fa-bell');
-if (notificationBtn) {
-    notificationBtn.closest('button').addEventListener('click', function() {
-        console.log('Notifications clicked');
-        // MODULE ATTACHMENT POINT: Open notifications panel
-    });
-}
-
-// ============================================
-// Table Filter and Export Handlers
-// MODULE ATTACHMENT POINT: Data export module
-// ============================================
-const filterBtn = document.querySelector('.fa-filter');
-if (filterBtn) {
-    filterBtn.closest('button').addEventListener('click', function() {
-        console.log('Filter clicked');
-        // MODULE ATTACHMENT POINT: Open filter panel
-    });
-}
-
-const exportBtn = document.querySelector('.fa-download');
-if (exportBtn) {
-    exportBtn.closest('button').addEventListener('click', function() {
-        console.log('Export clicked');
-        // MODULE ATTACHMENT POINT: Export table data (CSV, PDF, Excel)
-    });
-}
-
-// ============================================
-// Pagination Handlers
-// MODULE ATTACHMENT POINT: Pagination module
-// ============================================
-const paginationButtons = document.querySelectorAll('.px-6.py-4.border-t button');
-paginationButtons.forEach(btn => {
-    btn.addEventListener('click', function() {
-        const buttonText = this.textContent.trim();
-        console.log('Pagination:', buttonText);
-        
-        // Remove active state from all pagination buttons
-        paginationButtons.forEach(b => {
-            b.classList.remove('bg-indigo-600', 'text-white');
-            if (!b.textContent.includes('Previous') && !b.textContent.includes('Next')) {
-                b.classList.add('border', 'border-gray-300', 'hover:bg-gray-50');
+    
+    // ============================================
+    // Module Chip Selection
+    // MODULE ATTACHMENT POINT: Module selection logic
+    // ============================================
+    const moduleChips = document.querySelectorAll('.module-chip');
+    
+    if (moduleChips) {
+        moduleChips.forEach(chip => {
+            chip.addEventListener('click', function() {
+                this.classList.toggle('active');
+                console.log('Module chip toggled:', this.textContent.trim());
+            });
+        });
+    }
+    
+    // ============================================
+    // Create Project Modal
+    // MODULE ATTACHMENT POINT: Project creation functionality
+    // ============================================
+    const createProjectBtn = document.getElementById('createProjectBtn');
+    const createProjectModal = document.getElementById('createProjectModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelModalBtn = document.getElementById('cancelModalBtn');
+    const createProjectForm = document.getElementById('createProjectForm');
+    
+    function openModal() {
+        if (createProjectModal) {
+            createProjectModal.classList.remove('hidden');
+            createProjectModal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function closeModal() {
+        if (createProjectModal) {
+            createProjectModal.classList.add('hidden');
+            createProjectModal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    if (createProjectBtn) {
+        createProjectBtn.addEventListener('click', openModal);
+    }
+    
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeModal);
+    }
+    
+    if (cancelModalBtn) {
+        cancelModalBtn.addEventListener('click', closeModal);
+    }
+    
+    // Close modal on overlay click
+    if (createProjectModal) {
+        createProjectModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
             }
         });
-        
-        // Add active state if it's a number button
-        if (!buttonText.includes('Previous') && !buttonText.includes('Next')) {
-            this.classList.add('bg-indigo-600', 'text-white');
-            this.classList.remove('border', 'border-gray-300', 'hover:bg-gray-50');
-        }
-        
-        // MODULE ATTACHMENT POINT: Load page data
-    });
+    }
+    
+    // Form submission
+    if (createProjectForm) {
+        createProjectForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Project creation form submitted');
+            // MODULE ATTACHMENT POINT: Actual form submission logic
+            closeModal();
+        });
+    }
+    
+    // ============================================
+    // Placeholder Button Handlers
+    // MODULE ATTACHMENT POINT: Action button functionality
+    // ============================================
+    
+    // Search button
+    const searchBtn = document.querySelector('.bi-search').closest('button');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', function() {
+            console.log('Search clicked - MODULE ATTACHMENT POINT');
+        });
+    }
+    
+    // Notification button
+    const notificationBtn = document.querySelector('.bi-bell').closest('button');
+    if (notificationBtn) {
+        notificationBtn.addEventListener('click', function() {
+            console.log('Notifications clicked - MODULE ATTACHMENT POINT');
+        });
+    }
+    
+    // Filter button
+    const filterBtn = document.querySelector('.bi-funnel')?.closest('button');
+    if (filterBtn) {
+        filterBtn.addEventListener('click', function() {
+            console.log('Filter clicked - MODULE ATTACHMENT POINT');
+        });
+    }
+    
+    // New Audit button
+    const newAuditBtn = document.querySelector('.bi-plus-lg')?.closest('button');
+    if (newAuditBtn) {
+        newAuditBtn.addEventListener('click', function() {
+            console.log('New Audit clicked - MODULE ATTACHMENT POINT');
+        });
+    }
+    
+    // ============================================
+    // Initialize
+    // ============================================
+    console.log('Audit withGufran - Base Dashboard Layout Initialized');
+    console.log('Phase 1, Part 1: Ready for module integration');
+    
 });
 
 // ============================================
-// Utility Functions
+// MODULE ATTACHMENT POINTS for Future Features
 // ============================================
 
-/**
- * Show toast notification (placeholder for future module)
- * MODULE ATTACHMENT POINT: Toast notification system
+/*
+ * MODULE ATTACHMENT POINT: API Integration
+ * - Fetch user data
+ * - Load dashboard statistics
+ * - Get recent audits list
  */
-function showToast(message, type = 'info') {
-    console.log(`Toast [${type}]:`, message);
-    // MODULE ATTACHMENT POINT: Implement toast UI
-}
 
-/**
- * Show loading spinner (placeholder for future module)
- * MODULE ATTACHMENT POINT: Loading state management
+/*
+ * MODULE ATTACHMENT POINT: State Management
+ * - Application state
+ * - User preferences
+ * - Active project tracking
  */
-function showLoading() {
-    console.log('Loading started');
-    // MODULE ATTACHMENT POINT: Show loading overlay
-}
 
-function hideLoading() {
-    console.log('Loading finished');
-    // MODULE ATTACHMENT POINT: Hide loading overlay
-}
-
-/**
- * Confirm dialog (placeholder for future module)
- * MODULE ATTACHMENT POINT: Modal/confirmation system
+/*
+ * MODULE ATTACHMENT POINT: Real-time Updates
+ * - WebSocket connections
+ * - Notification system
+ * - Live data refresh
  */
-function confirmAction(message, callback) {
-    const confirmed = confirm(message);
-    if (confirmed && callback) {
-        callback();
-    }
-    // MODULE ATTACHMENT POINT: Replace with custom modal
-}
 
-// ============================================
-// Initialize Application
-// ============================================
-console.log('Audit withGufran - Application initialized');
-console.log('Phase 1: Base UI/UX loaded successfully');
+/*
+ * MODULE ATTACHMENT POINT: Authentication
+ * - Login/logout handlers
+ * - Token management
+ * - Session persistence
+ */
 
-// MODULE ATTACHMENT POINT: Initialize additional modules
-// - Authentication module
-// - Data fetching module
-// - State management
-// - WebSocket connections
-// - Analytics tracking
+/*
+ * MODULE ATTACHMENT POINT: Data Operations
+ * - CRUD operations
+ * - Form submissions
+ * - Data validation
+ */
+
+/*
+ * MODULE ATTACHMENT POINT: UI Components
+ * - Modal dialogs
+ * - Toast notifications
+ * - Loading states
+ * - Error handling
+ */

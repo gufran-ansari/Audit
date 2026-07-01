@@ -1,233 +1,444 @@
-/* 
- * Audit withGufran - Custom Styles
- * Phase 1: Base UI/UX and Responsive Layout
- * 
- * This file contains custom styles that complement Tailwind CSS
- * MODULE ATTACHMENT POINTS are marked for future feature integration
+/*
+ * Audit withGufran — Design System
+ * Unified stylesheet with CSS custom properties for consistency.
+ * Supports light mode, dark mode, and print.
  */
 
 /* ============================================
-   Custom Scrollbar Styles
+   DESIGN TOKENS (CSS Custom Properties)
+   Single source of truth for colors, spacing, radii.
    ============================================ */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+:root {
+    /* Brand */
+    --brand-50: #eef2ff;
+    --brand-100: #e0e7ff;
+    --brand-200: #c7d2fe;
+    --brand-500: #6366f1;
+    --brand-600: #4f46e5;
+    --brand-700: #4338ca;
+    --brand-800: #3730a3;
+
+    /* Neutral */
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+
+    /* Status */
+    --success-bg: #d1fae5; --success-text: #065f46; --success-border: #a7f3d0;
+    --warning-bg: #fef3c7; --warning-text: #92400e; --warning-border: #fde68a;
+    --danger-bg: #fee2e2; --danger-text: #991b1b; --danger-border: #fecaca;
+    --info-bg: #dbeafe; --info-text: #1e40af; --info-border: #bfdbfe;
+
+    /* Layout */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-full: 9999px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+
+    /* Surfaces */
+    --surface-primary: #ffffff;
+    --surface-secondary: var(--gray-50);
+    --surface-elevated: #ffffff;
+    --text-primary: var(--gray-800);
+    --text-secondary: var(--gray-600);
+    --text-muted: var(--gray-400);
+    --border-default: var(--gray-200);
+    --border-subtle: var(--gray-100);
 }
 
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
+/* Dark mode tokens */
+.dark-mode, .dark {
+    --surface-primary: var(--gray-800);
+    --surface-secondary: var(--gray-900);
+    --surface-elevated: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border-default: var(--gray-700);
+    --border-subtle: #1e293b;
 
-::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-}
+    --success-bg: #064e3b; --success-text: #6ee7b7;
+    --warning-bg: #451a03; --warning-text: #fcd34d;
+    --danger-bg: #450a0a; --danger-text: #fca5a5;
+    --info-bg: #1e3a5f; --info-text: #93c5fd;
 
-::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.5);
+
+    color-scheme: dark;
 }
 
 /* ============================================
-   Smooth Transitions
+   BASE RESET & TYPOGRAPHY
    ============================================ */
-* {
-    transition: all 0.2s ease;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* Disable transition for certain elements */
-input, textarea, select {
-    transition: none;
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--surface-secondary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
 }
 
 /* ============================================
-   App-like Card Interactions
+   SCROLLBAR
    ============================================ */
-.card-hover {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card-hover:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
-
-.card-hover:active {
-    transform: translateY(0);
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface-secondary); }
+::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+.dark-mode ::-webkit-scrollbar-track { background: var(--gray-900); }
+.dark-mode ::-webkit-scrollbar-thumb { background: var(--gray-600); }
 
 /* ============================================
-   Sidebar Styles
+   NAVIGATION
    ============================================ */
-.sidebar {
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+.nav-item {
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
+    border-radius: var(--radius-lg);
 }
-
-/* Sidebar menu item styles */
-.sidebar-item {
-    position: relative;
-    transition: background-color 0.2s ease, padding-left 0.2s ease;
+.nav-item:hover {
+    background-color: var(--surface-secondary);
+    color: var(--text-primary);
 }
-
-.sidebar-item:hover {
-    padding-left: 1.25rem;
+.nav-item.active {
+    background: linear-gradient(135deg, var(--brand-600), #7c3aed);
+    color: #ffffff;
 }
-
-.sidebar-item.active {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-left: 4px solid #ffffff;
-}
-
-.sidebar-item.active:hover {
-    padding-left: 1rem;
-}
+.nav-item.active i { color: #ffffff; }
 
 /* ============================================
-   Button Styles - App-like interactions
+   TRANSITIONS & INTERACTIONS
+   ============================================ */
+button, a, .nav-item, input, select, textarea {
+    transition: all 0.15s ease;
+}
+button:disabled { cursor: not-allowed; opacity: 0.5; }
+.hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.hover-lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.transition-smooth { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* ============================================
+   CARDS
+   ============================================ */
+.card {
+    background: var(--surface-primary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease;
+}
+.card:hover { box-shadow: var(--shadow-md); }
+
+/* ============================================
+   BUTTONS
    ============================================ */
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
 }
-
 .btn-primary:hover {
-    transform: scale(1.02);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    opacity: 0.92;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
 }
+.btn-primary:active { transform: translateY(0); }
 
-.btn-primary:active {
-    transform: scale(0.98);
+.btn-secondary {
+    background: var(--surface-primary);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid var(--border-default);
+    cursor: pointer;
+}
+.btn-secondary:hover { background: var(--surface-secondary); border-color: var(--gray-400); }
+
+.btn-danger {
+    background: #dc2626;
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+}
+.btn-danger:hover { background: #b91c1c; }
+
+/* ============================================
+   STATUS BADGES (unified system)
+   ============================================ */
+.badge, .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.2rem 0.625rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+    line-height: 1.4;
+}
+.badge-success, .status-badge.badge-success { background: var(--success-bg); color: var(--success-text); }
+.badge-warning, .status-badge.badge-warning { background: var(--warning-bg); color: var(--warning-text); }
+.badge-danger, .status-badge.badge-danger { background: var(--danger-bg); color: var(--danger-text); }
+.badge-info, .status-badge.badge-info { background: var(--info-bg); color: var(--info-text); }
+.badge-secondary, .status-badge.badge-secondary { background: var(--gray-100); color: var(--gray-600); }
+
+/* ============================================
+   MODULE CHIPS & FILTER CHIPS
+   ============================================ */
+.module-chip, .filter-chip {
+    background: var(--surface-primary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.module-chip:hover, .filter-chip:hover:not(.active) {
+    background: var(--brand-50);
+    border-color: var(--brand-200);
+}
+.module-chip.active, .filter-chip.active {
+    background: var(--brand-600);
+    color: #ffffff;
+    border-color: var(--brand-600);
 }
 
 /* ============================================
-   Table Responsive Enhancements
+   FORMS & INPUTS
    ============================================ */
-table {
-    border-collapse: separate;
-    border-spacing: 0;
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="url"], input[type="search"],
+textarea, select {
+    background: var(--surface-primary);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
 }
-
-/* Hover effect for table rows */
-tbody tr {
-    transition: background-color 0.15s ease;
-}
-
-/* ============================================
-   Status Badge Animations
-   ============================================ */
-.status-badge {
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* ============================================
-   Loading States (for future module integration)
-   MODULE ATTACHMENT POINT: Loading spinner styles
-   ============================================ */
-.loading-spinner {
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #667eea;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* ============================================
-   Mobile Responsive Adjustments
-   ============================================ */
-@media (max-width: 768px) {
-    .sidebar {
-        max-width: 280px;
-    }
-    
-    /* Ensure mobile cards have proper spacing */
-    .mobile-card {
-        margin-bottom: 0.5rem;
-    }
-}
-
-/* ============================================
-   Custom Focus States
-   ============================================ */
-input:focus, 
-textarea:focus, 
-select:focus,
-button:focus {
+input:focus, textarea:focus, select:focus {
+    border-color: var(--brand-500);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
 }
+input::placeholder, textarea::placeholder { color: var(--text-muted); }
 
 /* ============================================
-   Page Transition Effects
-   MODULE ATTACHMENT POINT: Page routing animations
+   TABLES
    ============================================ */
-.page-enter {
-    animation: slideIn 0.3s ease;
+table { border-collapse: collapse; width: 100%; }
+table thead { background: var(--surface-secondary); }
+table thead th {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    color: var(--text-secondary);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-default);
 }
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
+table tbody tr { transition: background-color 0.1s ease; }
+table tbody tr:hover { background-color: var(--surface-secondary); }
+table tbody td { padding: 0.75rem 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--border-subtle); }
 
 /* ============================================
-   Notification Badge Pulse
+   SIDEBAR
    ============================================ */
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.8;
-        transform: scale(1.1);
-    }
+#sidebar {
+    background: var(--surface-primary);
+    border-right: 1px solid var(--border-default);
+    box-shadow: var(--shadow-sm);
 }
-
-.notification-badge {
-    animation: pulse 2s ease-in-out infinite;
+.dark-mode #sidebar {
+    background: #1a1a2e;
+    border-color: #2a2a3e;
 }
 
 /* ============================================
-   Print Styles (for reports)
-   MODULE ATTACHMENT POINT: Report printing module
+   HEADER
+   ============================================ */
+.dark-mode header { background-color: #1a1a2e; border-color: #2a2a3e; }
+
+/* ============================================
+   DRAWER
+   ============================================ */
+#detailDrawer {
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+    background: var(--surface-primary);
+}
+
+/* ============================================
+   MODALS & DIALOGS
+   ============================================ */
+.modal-enter { animation: modalFadeIn 0.2s ease-out; }
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================
+   GRADIENTS
+   ============================================ */
+.gradient-primary { background: linear-gradient(135deg, var(--brand-600), #7c3aed); }
+.gradient-success { background: linear-gradient(135deg, #10b981, #059669); }
+.gradient-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.gradient-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+.spinner, .spinner-brand {
+    border: 3px solid var(--gray-200);
+    border-top-color: var(--brand-600);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }
+
+.skeleton {
+    background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+}
+.dark-mode .skeleton {
+    background: linear-gradient(90deg, var(--gray-800) 25%, var(--gray-700) 50%, var(--gray-800) 75%);
+    background-size: 200% 100%;
+}
+@keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skeleton-text { height: 0.75rem; }
+.skeleton-title { height: 1.5rem; }
+.skeleton-card { height: 8rem; border-radius: var(--radius-lg); }
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+.fade-in { animation: fadeIn 0.3s ease-out; }
+.slide-in-left { animation: slideInLeft 0.3s ease-out; }
+
+/* Toast */
+#toastContainer > div { animation: slideInRight 0.3s ease-out; }
+
+/* Search Modal */
+#searchModal > div:last-child { animation: modalFadeIn 0.15s ease-out; }
+.search-result-item:focus, .search-result-item:hover { background-color: var(--surface-secondary); outline: none; }
+
+/* Notification dropdown */
+#notifDropdown { animation: fadeInDown 0.15s ease-out; }
+
+/* Quick Actions */
+.quick-action { transition: all 0.15s ease; }
+.quick-action:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.quick-action:active { transform: translateY(0); }
+
+/* ============================================
+   EMPTY STATES
+   ============================================ */
+.empty-state { opacity: 0.7; }
+.empty-state-icon {
+    width: 64px; height: 64px;
+    background: var(--surface-secondary);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+}
+
+/* ============================================
+   WORKSPACE TABS
+   ============================================ */
+.workspace-tab {
+    transition: all 0.15s ease;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+.workspace-tab:hover { color: var(--brand-600); }
+.workspace-tab.active { border-bottom-color: var(--brand-600); color: var(--brand-600); }
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+*:focus-visible { outline: 2px solid var(--brand-600); outline-offset: 2px; }
+.focus-ring:focus-visible { outline: 2px solid var(--brand-600); outline-offset: 2px; border-radius: var(--radius-sm); }
+.skip-link {
+    position: absolute; top: -40px; left: 0;
+    background: var(--brand-600); color: white;
+    padding: 8px 16px; z-index: 9999; font-size: 14px;
+    transition: top 0.2s;
+}
+.skip-link:focus { top: 0; }
+
+/* ============================================
+   UTILITIES
+   ============================================ */
+.text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shadow-soft { box-shadow: var(--shadow-sm); }
+.border-subtle { border-color: var(--border-subtle); }
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1024px) {
+    #sidebar { max-width: 280px; }
+}
+@media (max-width: 768px) {
+    .card { border-radius: var(--radius-md); }
+    table thead th, table tbody td { padding: 0.5rem 0.75rem; font-size: 0.8rem; }
+}
+
+/* ============================================
+   PRINT
    ============================================ */
 @media print {
-    .sidebar,
-    header,
-    .no-print {
-        display: none !important;
-    }
-    
-    body {
-        background: white;
-    }
-    
-    .print-full-width {
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
+    #sidebar, header, button, .no-print { display: none !important; }
+    body { background: white !important; color: black !important; }
+    .card { box-shadow: none; border: 1px solid #ddd; }
+    table { font-size: 10px; }
 }

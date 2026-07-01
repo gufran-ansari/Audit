@@ -1,0 +1,304 @@
+================================================================================
+PHASE 6 — PART 1: BACKGROUND JOB SYSTEM FOUNDATION
+================================================================================
+
+STATUS: ✅ COMPLETE
+DATE: June 24, 2026
+
+================================================================================
+OVERVIEW
+================================================================================
+
+Implemented a background job processing system that allows audits to run
+independently of the UI. Users can queue an audit and continue working while
+the system processes pages in batches. Designed for shared hosting with
+limited execution time and memory.
+
+================================================================================
+FILES CREATED
+================================================================================
+
+DATABASE:
+  database/migrations_phase6_part1.sql
+    - audit_jobs table (status, progress, heartbeat, batching)
+    - audit_job_logs table (structured logging per job)
+
+BACKEND:
+  app/Services/JobService.php
+    - Full job lifecycle management
+    - State transitions (queued → processing → completed/failed)
+    - Progress tracking with heartbeat
+    - Interruption detection
+    - Job logging
+    - Priority-based queue retrieval
+
+  app/Jobs/JobProcessor.php
+    - Batch processing engine
+    - Uses existing orchestrator pattern (PageFetchService, processHtml)
+    - Time-limited execution (yields after 55s)
+    - Resumable via last_page_id tracking
+    - Heartbeat updates during processing
+
+ROUTES:
+  routes/jobs.php
+    - create: Queue a new audit job
+    - process: Process next job batch (for cron or polling)
+    - run: Process a specific job
+    - status: Get job status
+    - list: List project jobs
+    - counts: Status counts per project
+    - pause: Pause a running job
+    - cancel: Cancel a job
+    - logs: Get job execution logs
+
+CRON:
+  cron/process_jobs.php
+    - Standalone script for cron execution
+    - Detects interrupted jobs
+    - Processes one job batch per invocation
+    - Logs with timestamps
+
+FRONTEND:
+  assets/js/project-audits.js (updated)
+    - submitBackgroundJob() function
+    - triggerJobProcessing() for cron-less environments
+    - loadJobStatusPanel() with live progress display
+    - Job polling (5s interval when jobs are active)
+    - pauseJob() and cancelJob() controls
+    - getJobStatusBadge() for status visualization
+
+  project.php (updated)
+    - Added Job Status Panel section to workspace
+
+================================================================================
+DATABASE SCHEMA
+================================================================================
+
+TABLE: audit_jobs
+┌──────────────────┬──────────────────────────────────────────────┐
+│ Field            │ Description                                  │
+├──────────────────┼──────────────────────────────────────────────┤
+│ id               │ Auto-increment primary key                   │
+│ audit_run_id     │ Reference to parent audit run                │
+│ project_id       │ FK to projects table                         │
+│ job_type         │ audit, retry, scheduled                      │
+│ selected_modules │ JSON array of module keys                    │
+│ module_params    │ JSON params (e.g. keywords for word module)  │
+│ status           │ queued|processing|paused|interrupted|completed|failed │
+│ priority         │ 1 (highest) to 10 (lowest)                   │
+│ total_pages      │ Total pages to process                       │
+│ processed_pages  │ Pages processed so far                       │
+│ success_count    │ Successfully processed pages                 │
+│ failed_count     │ Pages that had errors                        │
+│ retry_count      │ Number of retries attempted                  │
+│ max_retries      │ Max retries allowed                          │
+│ batch_size       │ Pages per batch (default 25)                 │
+│ last_page_id     │ Last processed page ID (for resumption)      │
+│ error_message    │ Error message if failed                      │
+│ started_at       │ When processing began                        │
+│ completed_at     │ When processing ended                        │
+│ last_heartbeat   │ Updated during processing (liveness check)   │
+│ created_by       │ User who created the job                     │
+└──────────────────┴──────────────────────────────────────────────┘
+
+TABLE: audit_job_logs
+┌──────────────────┬──────────────────────────────────────────────┐
+│ Field            │ Description                                  │
+├──────────────────┼──────────────────────────────────────────────┤
+│ id               │ Auto-increment primary key                   │
+│ job_id           │ FK to audit_jobs                             │
+│ log_level        │ info, warning, error, debug                  │
+│ message          │ Log message text                             │
+│ context          │ JSON additional data                         │
+│ created_at       │ Timestamp                                    │
+└──────────────────┴──────────────────────────────────────────────┘
+
+================================================================================
+JOB LIFECYCLE
+================================================================================
+
+  [User clicks "Run Selected Audits"]
+            │
+            ▼
+  ┌─────────────────┐
+  │     QUEUED      │  Job created, waiting for processing
+  └────────┬────────┘
+           │  (cron picks up OR frontend polls /routes/jobs.php?action=process)
+           ▼
+  ┌─────────────────┐
+  │   PROCESSING    │  Batch processing with heartbeat updates
+  └────────┬────────┘
+           │
+     ┌─────┼─────┬──────────┐
+     │     │     │          │
+     ▼     ▼     ▼          ▼
+┌─────┐ ┌──────┐ ┌────────┐ ┌──────────────┐
+│DONE │ │FAILED│ │ PAUSED │ │ INTERRUPTED  │
+└─────┘ └──────┘ └────────┘ └──────────────┘
+                     (user)    (heartbeat timeout)
+
+================================================================================
+BATCH PROCESSING
+================================================================================
+
+Design for shared hosting:
+  - Default batch size: 25 pages
+  - Max execution time: 55 seconds per invocation
+  - Memory-friendly: clears fetch cache after each page
+  - Resumable: stores last_page_id for continuation
+  - Interruptible: heartbeat timeout detection (120s)
+
+Processing loop:
+  1. Get next batch of pages (ordered by ID, after last_page_id)
+  2. For each page: fetch once → run all modules → store results
+  3. Update progress + heartbeat after each batch
+  4. If time limit reached: save progress and exit (will resume next run)
+  5. If all pages done: mark job as completed
+
+================================================================================
+HEARTBEAT & INTERRUPTION DETECTION
+================================================================================
+
+During processing, the job updates last_heartbeat:
+  - After each batch completes
+  - Via updateProgress() call
+
+Detection:
+  - Jobs with status='processing' and last_heartbeat > 120 seconds old
+  - markAllInterrupted() scans for and marks these jobs
+  - Called by cron script and frontend polling
+
+This handles:
+  - PHP execution timeout
+  - Server crash/restart
+  - Network interruption
+  - Manual process kill
+
+================================================================================
+API ENDPOINTS
+================================================================================
+
+POST /routes/jobs.php?action=create
+  Params: project_id, modules, keyword (optional), batch_size (optional)
+  Response: { success, job }
+
+GET  /routes/jobs.php?action=process
+  Response: { success, job_id, job }
+  (Processes one batch of the next queued job)
+
+POST /routes/jobs.php?action=run
+  Params: job_id
+  Response: { success, job }
+
+GET  /routes/jobs.php?action=status&job_id=X
+  Response: { success, job }
+
+GET  /routes/jobs.php?action=list&project_id=X
+  Response: { success, jobs }
+
+GET  /routes/jobs.php?action=counts&project_id=X
+  Response: { success, counts: {queued, processing, completed, ...} }
+
+POST /routes/jobs.php?action=pause
+  Params: job_id
+  Response: { success, message }
+
+POST /routes/jobs.php?action=cancel
+  Params: job_id
+  Response: { success, message }
+
+GET  /routes/jobs.php?action=logs&job_id=X
+  Response: { success, logs }
+
+================================================================================
+WORKSPACE UI
+================================================================================
+
+Job Status Panel (visible in workspace):
+  ┌─────────────────────────────────────────────┐
+  │ ⚡ Background Jobs              [Refresh]   │
+  ├─────────────────────────────────────────────┤
+  │ [Running] h1, meta, noindex                 │
+  │ ████████████░░░░ 45/100 (45%)       [⏸]    │
+  │                                             │
+  │ [Done] lorem, staging                       │
+  │ 98 ok, 2 failed                             │
+  │                                             │
+  │ [Queued] word (solar lamp)          [✕]     │
+  └─────────────────────────────────────────────┘
+
+Features:
+  - Live progress bars for running jobs
+  - Status badges (Queued, Running, Paused, Done, Failed, Interrupted)
+  - Pause/Cancel buttons
+  - Auto-polls every 5s when active jobs exist
+  - Triggers processing via poll (for cron-less hosting)
+  - Stops polling when no active jobs
+
+================================================================================
+CRON SETUP
+================================================================================
+
+Add to crontab (recommended):
+
+  * * * * * php /path/to/Audit/cron/process_jobs.php >> /path/to/Audit/storage/logs/cron.log 2>&1
+
+Without cron (shared hosting):
+  - Frontend automatically triggers /routes/jobs.php?action=process every 5s
+  - Processing occurs as long as user has the page open
+  - Jobs resume when user returns to the workspace
+
+================================================================================
+EXECUTION MODES
+================================================================================
+
+The system now supports two execution modes:
+
+1. SYNCHRONOUS (existing, via audit_engine.php)
+   - User clicks → waits → sees results
+   - Best for small projects (< 50 URLs)
+   - Uses AuditOrchestrator directly
+
+2. BACKGROUND (new, via jobs.php)
+   - User clicks → job queued → returns immediately
+   - Best for large projects (100+ URLs)
+   - Processed in batches by JobProcessor
+   - Progress visible in real-time via polling
+
+================================================================================
+NOT IMPLEMENTED YET
+================================================================================
+
+  ✗ Retry Engine (auto-retry failed/interrupted jobs)
+  ✗ Auto Resume (restart interrupted jobs automatically)
+  ✗ Public Reports
+  ✗ Manual Overrides
+  ✗ Scheduled Jobs (cron-based scheduling UI)
+
+These build on this foundation in future phases.
+
+================================================================================
+TESTING
+================================================================================
+
+To test the job system:
+
+1. Create a job:
+   POST /routes/jobs.php?action=create
+   project_id=1&modules=h1,meta
+
+2. Process it:
+   GET /routes/jobs.php?action=process
+
+3. Check status:
+   GET /routes/jobs.php?action=status&job_id=1
+
+4. View logs:
+   GET /routes/jobs.php?action=logs&job_id=1
+
+5. Run cron manually:
+   php cron/process_jobs.php
+
+================================================================================
+END OF PHASE 6 PART 1 SUMMARY
+================================================================================

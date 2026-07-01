@@ -1,0 +1,316 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    PHASE 3 PART 3 - QUICK REFERENCE                          ║
+║              Workspace Integration + Multi-Sitemap Management                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+STATUS: ✅ COMPLETE | Date: June 16, 2026
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ KEY FEATURES                                                                 │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ ✅ Tabbed Workspace (Sitemaps + URLs)                                       │
+│ ✅ URL Listing Table (7 columns)                                            │
+│ ✅ Three-Level Filtering (Search, Sitemap, Status)                          │
+│ ✅ Pagination (50 URLs/page)                                                │
+│ ✅ Real-Time Statistics                                                      │
+│ ✅ Multi-Sitemap Management                                                  │
+│ ✅ Smart Reimport Logic                                                      │
+│ ✅ URL Lifecycle Status                                                      │
+│ ✅ Performance Optimized                                                     │
+│ ✅ Future-Ready Architecture                                                 │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ FILES MODIFIED                                                               │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ project.php                    → Added tabs, URL table, filters             │
+│ assets/js/project-pages.js     → Added sitemap filter loader                │
+│ assets/js/project-sitemaps.js  → Updated import flow, tab switching         │
+│ assets/css/styles.css          → Added workspace tab styles                 │
+│ database/migrations.sql        → Already complete (no changes)              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ NEW UI COMPONENTS                                                            │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 🗂️  Tab Navigation Bar                                                       │
+│ 🔍 Search Input (debounced 500ms)                                           │
+│ 📋 Sitemap Filter Dropdown                                                   │
+│ 🏷️  Status Filter Dropdown                                                   │
+│ 📊 Statistics Dashboard (4 cards)                                           │
+│ 📄 URL Table (with 7 columns)                                               │
+│ ⏮️  Pagination Controls                                                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ TABLE COLUMNS                                                                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 1. ☐ Checkbox (for bulk selection - future)                                │
+│ 2. 🔗 URL (original + normalized if different)                              │
+│ 3. 🗺️  Sitemap Source (which sitemap it came from)                          │
+│ 4. 🏷️  URL Status (active/disabled/removed/pending_audit)                   │
+│ 5. 🕐 Last Seen (relative timestamp)                                        │
+│ 6. ✓ Audit Status (placeholder for Phase 4)                                │
+│ 7. 👁️  Actions (view details button)                                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ FILTER SYSTEM                                                                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Search:   Real-time search in original_url and normalized_url               │
+│           500ms debounce for performance                                     │
+│                                                                              │
+│ Sitemap:  Dropdown with all project sitemaps                                │
+│           Shows truncated URLs (60 chars max)                               │
+│           "All Sitemaps" option to clear filter                             │
+│                                                                              │
+│ Status:   Filter by URL lifecycle state                                     │
+│           Options: All, Active, Disabled, Removed, Pending Audit            │
+│                                                                              │
+│ Logic:    All filters work together (AND logic)                             │
+│           Pagination resets when filter changes                             │
+│           Backend filtering in PageRepository                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ STATISTICS                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Total URLs:       Count from project_pages table                            │
+│ Unique URLs:      Count distinct by url_hash                                │
+│ Pending Audit:    Count where page_status = 'pending'                       │
+│ Completed Audit:  Count where page_status = 'completed'                     │
+│                                                                              │
+│ Display:          4 color-coded cards with icons                            │
+│ Update:           Auto-refresh after import                                 │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ IMPORT WORKFLOW                                                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 1. User clicks Import on sitemap card                                       │
+│ 2. Confirmation dialog shown                                                │
+│ 3. Import executes via AJAX                                                 │
+│ 4. Progress notification displayed                                          │
+│ 5. Success notification with counts                                         │
+│ 6. Sitemap stats updated                                                    │
+│ 7. Auto-switch to URLs tab (1.5s delay)                                     │
+│ 8. URLs displayed in table                                                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ REIMPORT LOGIC                                                               │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ New URLs:        Inserted with status 'active'                              │
+│ Existing URLs:   Updated with last_seen_at = NOW()                          │
+│ Duplicates:      Skipped using ON DUPLICATE KEY UPDATE                      │
+│ Hash Check:      SHA256 of normalized_url prevents duplicates               │
+│ Batch Size:      100 URLs per insert for performance                        │
+│ Reporting:       Returns imported, duplicates, invalid counts               │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ URL STATUS SYSTEM                                                            │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ active:          URL is currently in sitemap (green badge)                  │
+│ disabled:        URL manually disabled by user (gray badge)                 │
+│ removed:         URL no longer in sitemap (red badge)                       │
+│ pending_audit:   Waiting for audit execution (blue badge)                   │
+│                                                                              │
+│ Database:        url_status ENUM field in project_pages                     │
+│ Filtering:       Can filter by status in workspace                          │
+│ Future:          Status transitions will be logged                          │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ PAGINATION                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Page Size:       50 URLs per page (configurable)                            │
+│ Controls:        Previous, Next, Page numbers                               │
+│ Smart Display:   Shows first, last, current ±2 pages                        │
+│ Ellipsis:        Shows ... for large page ranges                            │
+│ State:           Preserves filters across pages                             │
+│ Hidden:          Auto-hides when ≤ 50 URLs                                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ TAB SYSTEM                                                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Tabs:            [Sitemaps] [URLs]                                          │
+│ Active:          Indigo text, indigo bottom border                          │
+│ Inactive:        Gray text, transparent border                              │
+│ Switching:       Click to switch, no page reload                            │
+│ Loading:         Lazy load URLs tab on first access                         │
+│ Animation:       Smooth fade transition                                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ DATABASE UPDATES                                                             │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ project_sitemaps:                                                            │
+│   • sitemap_status ENUM('active', 'disabled')                               │
+│   • last_imported_at TIMESTAMP                                              │
+│   • INDEX idx_sitemap_status                                                │
+│                                                                              │
+│ project_pages:                                                               │
+│   • url_status ENUM('active', 'disabled', 'removed', 'pending_audit')      │
+│   • INDEX idx_url_status                                                    │
+│                                                                              │
+│ All schemas already in migrations.sql from Phase 3 Part 2                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ PERFORMANCE OPTIMIZATIONS                                                    │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Database:                                                                    │
+│   • Indexes on all filter columns                                           │
+│   • LIMIT/OFFSET for pagination                                             │
+│   • Batch inserts (100 per batch)                                           │
+│   • ON DUPLICATE KEY UPDATE                                                 │
+│   • LEFT JOIN only when needed                                              │
+│                                                                              │
+│ Frontend:                                                                    │
+│   • Debounced search (500ms)                                                │
+│   • Lazy tab loading                                                        │
+│   • Minimal DOM updates                                                     │
+│   • Event delegation                                                        │
+│   • No full page reloads                                                    │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ API ENDPOINTS                                                                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ List Pages:                                                                  │
+│   GET /routes/pages.php?action=list&project_id={id}&page={n}&per_page={n}  │
+│   Optional: &sitemap_id={id}&url_status={status}&search={term}             │
+│                                                                              │
+│ Get Stats:                                                                   │
+│   GET /routes/pages.php?action=stats&project_id={id}                        │
+│                                                                              │
+│ Import URLs:                                                                 │
+│   POST /routes/pages.php?action=import&sitemap_id={id}                      │
+│                                                                              │
+│ List Sitemaps:                                                               │
+│   GET /routes/sitemaps.php?action=list&project_id={id}                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ JAVASCRIPT FUNCTIONS                                                         │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ project-pages.js:                                                            │
+│   • initializePagesTab()      - Initialize URLs tab                         │
+│   • loadPages()                - Fetch and render URLs                      │
+│   • loadPageStats()            - Fetch and render stats                     │
+│   • loadSitemapFilter()        - Populate sitemap dropdown                  │
+│   • renderPages()              - Render URL table                           │
+│   • renderPagesPagination()    - Render pagination                          │
+│   • goToPageNumber()           - Navigate to page                           │
+│                                                                              │
+│ project-sitemaps.js:                                                         │
+│   • importUrls()               - Import URLs, switch to tab                 │
+│   • viewUrls()                 - Switch to tab with filter                  │
+│                                                                              │
+│ project.php (inline):                                                        │
+│   • setActiveTab()             - Switch between tabs                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ USER WORKFLOWS                                                               │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Workflow 1: Discover → Import → View                                        │
+│   Sitemaps tab → Discover → Validate → Import → Auto-switch to URLs        │
+│                                                                              │
+│ Workflow 2: Filter URLs                                                     │
+│   URLs tab → Select sitemap → Select status → Type search → View results   │
+│                                                                              │
+│ Workflow 3: View from Sitemap                                               │
+│   Sitemaps tab → Click "View URLs" → Switch to URLs with filter            │
+│                                                                              │
+│ Workflow 4: Multi-Sitemap Import                                            │
+│   Add sitemap 1 → Import → Add sitemap 2 → Import → View all in URLs tab  │
+│                                                                              │
+│ Workflow 5: Reimport Detection                                              │
+│   Import sitemap → View URLs → Reimport → Duplicates skipped, stats update │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ EMPTY & LOADING STATES                                                       │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Loading:  Spinner + "Loading URLs..." message                               │
+│ Empty:    Icon + "No URLs Found" + "Import from sitemap" message            │
+│ Error:    Error icon + Error message + Retry suggestion                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ FUTURE-READY FOR                                                             │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ ✓ Phase 4: Audit Modules (H1, Meta, Noindex, FAQ)                          │
+│   - Audit Status column ready                                               │
+│   - page_status field tracks execution                                      │
+│   - Status badges extensible                                                │
+│                                                                              │
+│ ✓ Phase 5: Background Jobs                                                  │
+│   - Import logic isolated                                                   │
+│   - Batch processing structure                                              │
+│   - Queue-ready architecture                                                │
+│                                                                              │
+│ ✓ Phase 6: Report Generation                                                │
+│   - Data structure complete                                                 │
+│   - Statistics calculated                                                   │
+│   - Filters enable reports                                                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ NOT IMPLEMENTED (BY DESIGN)                                                  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ ❌ H1 audits                 → Phase 4                                       │
+│ ❌ Meta audits               → Phase 4                                       │
+│ ❌ Noindex audits            → Phase 4                                       │
+│ ❌ FAQ audits                → Phase 4                                       │
+│ ❌ Background jobs           → Phase 5                                       │
+│ ❌ Retry system              → Phase 5                                       │
+│ ❌ Report generation         → Phase 6                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ TESTING RECOMMENDATIONS                                                      │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 1. Test tab switching (Sitemaps ↔ URLs)                                    │
+│ 2. Test URL loading and display                                             │
+│ 3. Test search filter with various terms                                    │
+│ 4. Test sitemap filter dropdown                                             │
+│ 5. Test status filter options                                               │
+│ 6. Test pagination with large dataset                                       │
+│ 7. Test import workflow end-to-end                                          │
+│ 8. Test "View URLs" from sitemap card                                       │
+│ 9. Test reimport (check for duplicates)                                     │
+│ 10. Test statistics accuracy                                                │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ KNOWN LIMITATIONS                                                            │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ • Bulk actions not yet implemented (checkboxes present)                     │
+│ • URL details view placeholder (coming in audit phase)                      │
+│ • No sitemap disable from URLs tab (must use Sitemaps tab)                  │
+│ • No export functionality (coming with reports)                             │
+│ • No manual URL status change (automatically managed)                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ DOCUMENTATION FILES                                                          │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 📄 PHASE3_PART3_SUMMARY.txt           - Quick summary                       │
+│ 📄 PHASE3_PART3_QUICKREF.txt          - This file                           │
+│ 📄 docs/PHASE3_PART3_COMPLETE.md      - Full documentation                  │
+│ 📄 docs/PHASE3_PART3_VISUAL_GUIDE.md  - UI mockups & flows                  │
+│ 📄 docs/PHASE3_PART3_CHECKLIST.md     - Implementation checklist            │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           PHASE COMPLETE ✅                                  ║
+║                                                                              ║
+║  The workspace now has full URL management with tabs, filtering,            ║
+║  pagination, statistics, and multi-sitemap support. Ready for Phase 4!      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Next Phase: Phase 4 - Audit Module Foundation (H1, Meta, Noindex, FAQ)

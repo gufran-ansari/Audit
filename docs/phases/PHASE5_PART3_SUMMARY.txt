@@ -1,0 +1,269 @@
+================================================================================
+PHASE 5 — PART 3: AUDIT ORCHESTRATION LAYER + ENGINE COMPLETION
+================================================================================
+
+STATUS: ✅ COMPLETE
+DATE: June 24, 2026
+
+================================================================================
+OVERVIEW
+================================================================================
+
+This phase built the centralized audit orchestration layer that manages all 7
+audit modules through a single execution engine. Pages are fetched ONCE and
+shared across all selected modules, eliminating duplicate HTTP requests.
+
+Key deliverables:
+1. AuditOrchestrator - centralized execution engine
+2. PageFetchService - shared page fetching with in-memory cache
+3. ModuleRegistry - single source of truth for all modules
+4. AuditSummaryService - project and module-level summaries
+5. AuditResultHelper - consistent result formatting
+6. AuditEngineController + route - single API entry point
+7. Audit configuration file (config/audit.php)
+8. Fixed autoloader (App\ prefix now resolves correctly)
+9. All processors refactored with processHtml() method
+10. Frontend updated to use orchestrated single-request execution
+
+================================================================================
+ARCHITECTURE
+================================================================================
+
+BEFORE (per-module execution):
+  UI → Module A endpoint → fetch page → analyze → store
+  UI → Module B endpoint → fetch page → analyze → store  (DUPLICATE FETCH!)
+  UI → Module C endpoint → fetch page → analyze → store  (DUPLICATE FETCH!)
+
+AFTER (orchestrated execution):
+  UI → Audit Engine → fetch page ONCE → share HTML to all modules → store all
+
+PERFORMANCE GAIN:
+  7 modules × N pages = 7N HTTP requests  →  1N HTTP requests
+  (7× fewer outbound requests to target sites)
+
+================================================================================
+FILES CREATED
+================================================================================
+
+CORE SERVICES:
+  app/Services/AuditOrchestrator.php      - centralized execution engine
+  app/Services/PageFetchService.php       - shared page fetching + memory cache
+  app/Services/ModuleRegistry.php         - module registry (definitions + factory)
+  app/Services/AuditResultHelper.php      - result normalization + summaries
+  app/Services/AuditSummaryService.php    - project/module dashboard statistics
+
+CONTROLLER + ROUTE:
+  app/Modules/AuditEngine/AuditEngineController.php  - single API controller
+  routes/audit_engine.php                             - unified entry point
+
+CONFIGURATION:
+  config/audit.php  - audit engine configuration (modules, fetch, execution)
+
+================================================================================
+FILES MODIFIED
+================================================================================
+
+AUTOLOADER FIX:
+  app/bootstrap.php
+  - Fixed prefix from '' to 'App\\'
+  - All App\ namespace classes now resolve correctly to app/ directory
+
+PROCESSORS (added processHtml() method to each):
+  app/Modules/H1Audit/H1AuditProcessor.php
+  app/Modules/MetaAudit/MetaAuditProcessor.php
+  app/Modules/NoindexAudit/NoindexAuditProcessor.php
+  app/Modules/FaqSchemaAudit/FaqSchemaAuditProcessor.php
+  app/Modules/LoremAudit/LoremAuditProcessor.php
+  app/Modules/StagingAudit/StagingAuditProcessor.php
+  app/Modules/WordOccurrenceAudit/WordOccurrenceProcessor.php
+
+FRONTEND:
+  assets/js/project-audits.js
+  - runSelectedAudits() now sends ONE request to orchestrator
+  - Added loadAuditSummary() for workspace dashboard stats
+  - Calls /routes/audit_engine.php?action=run_project with all modules
+
+================================================================================
+API ENDPOINTS
+================================================================================
+
+POST /routes/audit_engine.php?action=run_project
+  Params: project_id, modules (comma-separated keys), keyword (for word module)
+  Response: { success, run_id, total_pages, success_pages, failed_pages, module_summary }
+
+POST /routes/audit_engine.php?action=run_pages
+  Params: project_id, page_ids, modules, keyword
+  Response: same as above
+
+GET  /routes/audit_engine.php?action=modules
+  Response: { modules: [...] }  (list of all enabled modules with metadata)
+
+GET  /routes/audit_engine.php?action=summary&project_id=X
+  Response: { summary: { project: {...}, modules: [...] } }
+
+================================================================================
+MODULE REGISTRY
+================================================================================
+
+Modules registered (in execution order):
+
+  Key      | Module Name            | Label
+  ---------|------------------------|-----------------------
+  h1       | h1_audit               | H1 Audit
+  meta     | meta_audit             | Meta Audit
+  noindex  | noindex_audit          | Noindex Audit
+  faq      | faq_schema_audit       | FAQ Schema Audit
+  lorem    | lorem_audit            | Lorem Ipsum Audit
+  staging  | staging_audit          | Staging URL Audit
+  word     | word_occurrence_audit  | Word Occurrence Audit
+
+To add a new module:
+  1. Create the 5-file module in app/Modules/NewModule/
+  2. Add processHtml() method to the processor
+  3. Add entry to ModuleRegistry::$modules
+  4. Add route (optional, for direct access)
+  5. Done - orchestrator picks it up automatically
+
+================================================================================
+EXECUTION FLOW
+================================================================================
+
+1. User selects modules and clicks "Run Selected Audits"
+2. Frontend sends single POST to /routes/audit_engine.php?action=run_project
+3. AuditEngineController validates input and builds module params
+4. AuditOrchestrator::runProject() is called
+5. ModuleRegistry::resolve() validates and orders selected modules
+6. For each page in project:
+   a. PageFetchService::fetch() retrieves HTML once (cached in memory)
+   b. Each selected processor's processHtml() is called with shared HTML
+   c. Results are stored via each module's repository
+   d. History is recorded if status changed (AuditHistoryService)
+   e. Memory cache cleared for that URL to keep footprint low
+7. AuditRunService records completion and execution stats
+8. Frontend receives summary and refreshes the workspace
+
+================================================================================
+SHARED PAGE FETCHING
+================================================================================
+
+PageFetchService:
+  - Centralized cURL-based fetcher
+  - In-memory LRU cache (max 50 entries, configurable)
+  - Auto-eviction of oldest entries when cap reached
+  - Per-URL forget() after processing to minimize memory
+  - Shared response includes: html, http_code, final_url, content_type, error
+  - All modules receive the same HTML string (no duplicate requests)
+
+Memory optimization:
+  - Cache cleared per page after all modules process it
+  - Max 50 entries prevents memory bloat on shared hosting
+  - No disk caching (stateless between requests)
+
+================================================================================
+RESULT CONSISTENCY
+================================================================================
+
+Every module result (via processHtml) returns at minimum:
+  - status: PASS | WARNING | FAIL | ERROR
+  - error: string|null
+  - Module-specific data fields
+
+AuditResultHelper::normalize() creates the unified envelope:
+  - module_name
+  - status
+  - summary (human-readable)
+  - details (raw module data)
+  - execution_time
+  - checked_at
+
+AuditResultHelper::buildSummary() generates per-module descriptions:
+  - "Single H1 found"
+  - "Title: valid, Description: too_short"
+  - "3 placeholder occurrence(s)"
+  - etc.
+
+================================================================================
+WORKSPACE SUMMARY
+================================================================================
+
+loadAuditSummary() (frontend) fetches and displays:
+
+Project Summary:
+  - Total Pages
+  - Passed (green)
+  - Warnings (yellow)
+  - Failed (red)
+  - Errors (red)
+  - Not Audited (gray)
+  - Last Audit Date
+
+Module Summary (from AuditSummaryService):
+  - Per-module issue counts
+  - Pass/Warning/Fail/Error breakdown
+  - Last checked timestamp
+  - Labels and icons from registry
+
+================================================================================
+AUDIT CONFIGURATION (config/audit.php)
+================================================================================
+
+  default_modules:    which modules run when none specified
+  execution_order:    priority ordering
+  modules:            per-module enable/disable flags
+  fetch:              timeout, user agent, SSL, cache settings
+  execution:          progress interval, max pages, history flag
+  background:         prepared settings for future phase (not active)
+
+================================================================================
+PREPARED FOR NEXT PHASE
+================================================================================
+
+Architecture is ready for:
+  ✓ Background jobs (batch_size + resumable flags in config)
+  ✓ Retry engine (AuditRunService::cancelRun(), error tracking)
+  ✓ Resumable processing (run tracking with processed_pages counter)
+  ✓ Scheduled audits (run_type includes 'scheduled')
+  ✓ Preset audits (run_type includes 'preset')
+
+NOT implemented yet:
+  ✗ Background Jobs
+  ✗ Retry System
+  ✗ Public Reports
+  ✗ Manual Overrides
+  ✗ Scheduled Execution
+
+================================================================================
+VERIFICATION
+================================================================================
+
+All classes resolve correctly:
+  ✅ App\Services\AuditOrchestrator
+  ✅ App\Services\PageFetchService
+  ✅ App\Services\ModuleRegistry
+  ✅ App\Services\AuditResultHelper
+  ✅ App\Services\AuditSummaryService
+  ✅ App\Services\AuditResultService
+  ✅ App\Services\AuditRunService
+  ✅ App\Services\AuditHistoryService
+  ✅ App\Modules\AuditEngine\AuditEngineController
+  ✅ All 7 module processors (with processHtml method)
+
+PHP syntax: All files pass php -l
+Diagnostics: No errors in any file
+Registry test: 7 modules registered, resolve/instantiate works
+
+================================================================================
+INDIVIDUAL MODULE ROUTES STILL WORK
+================================================================================
+
+The per-module routes (routes/h1_audit.php, etc.) still function for
+backward compatibility and direct module invocation. However, the
+recommended path is now through the audit engine:
+
+  /routes/audit_engine.php?action=run_project
+
+This ensures shared fetching, consistent tracking, and history recording.
+
+================================================================================
+END OF PHASE 5 PART 3 SUMMARY
+================================================================================
