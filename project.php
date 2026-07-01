@@ -52,6 +52,18 @@ $sitemapStats = $sitemapService->getSitemapStats($project['id']);
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // overrides.js popup uses brand-* utility classes; register the palette.
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3' }
+                    }
+                }
+            }
+        };
+    </script>
     
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -91,6 +103,12 @@ $sitemapStats = $sitemapService->getSitemapStats($project['id']);
                         <i class="bi bi-folder text-lg mr-3"></i>
                         <span>Projects</span>
                     </a>
+                    <?php if (($currentUser['role'] ?? '') === 'super_admin'): ?>
+                    <a href="settings.php" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
+                        <i class="bi bi-gear text-lg mr-3"></i>
+                        <span>Settings</span>
+                    </a>
+                    <?php endif; ?>
                 </div>
             </nav>
             
@@ -625,6 +643,23 @@ $sitemapStats = $sitemapService->getSitemapStats($project['id']);
     <script src="assets/js/project-sitemaps.js"></script>
     <script src="assets/js/project-pages.js"></script>
     <script src="assets/js/project-audits.js"></script>
+    <script src="assets/js/overrides.js"></script>
+    <script>
+        // Initialize the Manual Override system for this project (loads override
+        // map + summary from routes/overrides.php and injects the popup).
+        (function () {
+            function initOverrides() {
+                if (window.OverrideSystem && typeof window.OverrideSystem.init === 'function') {
+                    window.OverrideSystem.init(projectId);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initOverrides);
+            } else {
+                initOverrides();
+            }
+        })();
+    </script>
     
     <script>
         // Tab switching functionality

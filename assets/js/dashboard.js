@@ -159,6 +159,30 @@
         html += '</div>';
 
         container.innerHTML = html;
+
+        bindQuickActions(container);
+    }
+
+    // Wire dashboard quick-action buttons to real destinations/behaviours.
+    function bindQuickActions(container) {
+        container.querySelectorAll('.quick-action').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                switch (this.dataset.action) {
+                    case 'create_project':
+                    case 'import_sitemap':
+                    case 'run_audit':
+                    case 'retry_failed':
+                    case 'open_reports':
+                        window.location.href = 'projects.php';
+                        break;
+                    case 'settings':
+                        window.location.href = 'settings.php';
+                        break;
+                    default:
+                        break;
+                }
+            });
+        });
     }
 
     function statCard(label, value, icon, color) {
@@ -288,6 +312,14 @@
             html += '</button>';
         }
         container.innerHTML = html;
+
+        // Navigate on click (results carry a `url` from the backend)
+        container.querySelectorAll('.search-result-item').forEach(function (item, idx) {
+            item.addEventListener('click', function () {
+                var target = results[idx] && results[idx].url;
+                if (target) window.location.href = target;
+            });
+        });
     }
 
     // ==========================================

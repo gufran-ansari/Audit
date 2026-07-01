@@ -17,6 +17,19 @@ let currentFilters = {
 let pagesTableBody, paginationContainer, pageStatsContainer;
 let searchInput, sitemapFilter, urlStatusFilter, wordResultFilter;
 
+// Currently open detail-drawer page id (for override-change refresh)
+let currentDetailPageId = null;
+
+// When a manual override is saved/removed via OverrideSystem, refresh the
+// workspace table and, if open, the detail drawer so the change is reflected.
+document.addEventListener('overrideChanged', function () {
+    if (typeof loadPages === 'function') loadPages();
+    if (typeof loadPageStats === 'function') loadPageStats();
+    if (currentDetailPageId && typeof viewPageDetails === 'function') {
+        viewPageDetails(currentDetailPageId);
+    }
+});
+
 /**
  * Initialize pages tab
  */
@@ -441,6 +454,8 @@ function viewPageDetails(pageId) {
         return;
     }
 
+    currentDetailPageId = pageId;
+
     // Render immediately with the data we already have (audit results),
     // then enrich with history/logs/overrides once fetched.
     renderPageDetailDrawer(page);
@@ -528,11 +543,13 @@ function renderPageExtraDetails(detail) {
 
     // ── Manual Overrides ──
     html += '<div class="border-t border-gray-200 pt-4">';
-    html += '<h4 class="text-sm font-semibold text-gray-800 mb-3"><i class="bi bi-pencil-square mr-1"></i>Manual Overrides</h4>';
+    html += '<div class="flex items-center justify-between mb-3">';
+    html += '<h4 class="text-sm font-semibold text-gray-800"><i class="bi bi-pencil-square mr-1"></i>Manual Overrides</h4>';
+    html += '</div>';
     if (overrides.length === 0) {
-        html += '<p class="text-xs text-gray-400">No manual overrides applied.</p>';
+        html += '<p class="text-xs text-gray-400 mb-3">No manual overrides applied.</p>';
     } else {
-        html += '<div class="space-y-2">';
+        html += '<div class="space-y-2 mb-3">';
         overrides.forEach(o => {
             const mod = (o.module_name || '').replace(/_/g, ' ');
             const when = o.updated_at ? formatDate(o.updated_at) : '';
@@ -552,9 +569,56 @@ function renderPageExtraDetails(detail) {
         });
         html += '</div>';
     }
+
+    // Per-module override management buttons (only when OverrideSystem is loaded).
+    const opage = detail.page || {};
+    const overrideByModule = {};
+    overrides.forEach(o => { overrideByModule[o.module_name] = o; });
+
+    if (window.OverrideSystem && opage.id) {
+        const modules = [
+            { key: 'h1_audit', label: 'H1', status: opage.h1_status },
+            { key: 'meta_audit', label: 'Meta', status: opage.meta_status },
+            { key: 'noindex_audit', label: 'Noindex', status: opage.noindex_status },
+            { key: 'faq_schema_audit', label: 'FAQ', status: opage.faq_status },
+            { key: 'lorem_audit', label: 'Lorem', status: opage.lorem_status },
+            { key: 'staging_audit', label: 'Staging', status: opage.staging_status },
+            { key: 'word_occurrence_audit', label: 'Word', status: opage.word_status }
+        ];
+
+        html += '<div class="flex flex-wrap gap-1.5">';
+        let anyModule = false;
+        modules.forEach(m => {
+            // Overrides require an original automated status; skip modules not yet run.
+            if (!m.status && !overrideByModule[m.key]) return;
+            anyModule = true;
+            const existing = overrideByModule[m.key];
+            const cls = existing
+                ? 'border-indigo-300 text-indigo-700 bg-indigo-50'
+                : 'border-gray-200 text-gray-600 hover:border-gray-300';
+            const icon = existing ? 'bi-pencil' : 'bi-plus-lg';
+            html += `<button class="override-manage-btn inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-lg border transition ${cls}"
+                data-module="${m.key}" data-status="${escapeHtml(m.status || '')}"><i class="bi ${icon}"></i>${m.label}</button>`;
+        });
+        if (!anyModule) {
+            html += '<p class="text-xs text-gray-400">Run an audit to enable manual overrides.</p>';
+        }
+        html += '</div>';
+    }
     html += '</div>';
 
     container.innerHTML = html;
+
+    // Bind override management buttons -> open the existing OverrideSystem popup.
+    if (window.OverrideSystem && opage.id) {
+        container.querySelectorAll('.override-manage-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const moduleName = btn.dataset.module;
+                const status = btn.dataset.status || null;
+                window.OverrideSystem.openPopup(opage.id, moduleName, status, overrideByModule[moduleName] || null);
+            });
+        });
+    }
 }
 
 /**
@@ -791,6 +855,7 @@ function closePageDetailDrawer() {
         drawer.classList.add('hidden');
         drawer.innerHTML = '';
     }
+    currentDetailPageId = null;
 }
 
 /**

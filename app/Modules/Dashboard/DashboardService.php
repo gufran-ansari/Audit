@@ -160,7 +160,7 @@ class DashboardService
 
         // Search projects
         $projects = $this->db->query(
-            "SELECT id, project_name, primary_domain, 'project' as type
+            "SELECT id, uuid, project_name, primary_domain, 'project' as type
              FROM projects WHERE project_name LIKE :q OR primary_domain LIKE :q
              ORDER BY project_name LIMIT 5",
             ['q' => $q]
@@ -172,12 +172,13 @@ class DashboardService
                 'subtitle' => $p['primary_domain'],
                 'id' => $p['id'],
                 'icon' => 'bi-folder',
+                'url' => 'project.php?uuid=' . urlencode($p['uuid']),
             ];
         }
 
-        // Search pages (URLs)
+        // Search pages (URLs) — navigate to the owning project workspace
         $pages = $this->db->query(
-            "SELECT pp.id, pp.original_url, p.project_name, 'page' as type
+            "SELECT pp.id, pp.original_url, p.project_name, p.uuid AS project_uuid, 'page' as type
              FROM project_pages pp
              INNER JOIN projects p ON p.id = pp.project_id
              WHERE pp.original_url LIKE :q
@@ -191,6 +192,7 @@ class DashboardService
                 'subtitle' => $pg['project_name'],
                 'id' => $pg['id'],
                 'icon' => 'bi-link-45deg',
+                'url' => 'project.php?uuid=' . urlencode($pg['project_uuid']),
             ];
         }
 
@@ -210,6 +212,7 @@ class DashboardService
                 'subtitle' => '/report/' . $r['report_slug'],
                 'id' => $r['id'],
                 'icon' => 'bi-file-earmark-text',
+                'url' => 'report.php?slug=' . urlencode($r['report_slug']),
             ];
         }
 

@@ -69,6 +69,12 @@ $currentUser = $authService->user();
                         <i class="bi bi-folder text-lg mr-3"></i>
                         <span>Projects</span>
                     </a>
+                    <?php if (($currentUser['role'] ?? '') === 'super_admin'): ?>
+                    <a href="settings.php" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
+                        <i class="bi bi-gear text-lg mr-3"></i>
+                        <span>Settings</span>
+                    </a>
+                    <?php endif; ?>
                 </div>
             </nav>
 
