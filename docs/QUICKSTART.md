@@ -14,56 +14,36 @@ Get up and running with the Audit withGufran application in minutes.
 
 ## 🚀 Getting Started
 
-### Option 1: Direct File Open (Simplest)
+This is a PHP application. It must be served by PHP (not opened as a static file).
+The single entry point is `index.php`, which redirects to the login page or the
+dashboard depending on auth state.
 
-1. Navigate to the project folder
-2. Double-click `index.html`
-3. The application will open in your default browser
-
-**Note**: Some features may require a local server in future phases.
-
----
-
-### Option 2: Python HTTP Server (Recommended)
+### Option 1: PHP Built-in Server (Simplest)
 
 ```bash
 # Navigate to project directory
 cd /home/gufran/Downloads/Firefox/Projects/Apps/Audit
 
-# Start Python 3 server
-python3 -m http.server 8000
-
-# Or Python 2
-python -m SimpleHTTPServer 8000
+# Start the PHP server
+php -S localhost:8000
 ```
 
-Then open your browser to: **http://localhost:8000**
+Then open your browser to: **http://localhost:8000** (served by `index.php`).
 
 ---
 
-### Option 3: Node.js HTTP Server
+### Option 2: Apache / Nginx (Production-like)
 
-```bash
-# Install http-server globally (one time)
-npm install -g http-server
-
-# Navigate to project directory
-cd /home/gufran/Downloads/Firefox/Projects/Apps/Audit
-
-# Start server
-http-server -p 8000
-```
-
-Then open your browser to: **http://localhost:8000**
+Point a PHP-enabled virtual host document root at the project folder. The
+`.htaccess` sets `DirectoryIndex index.php`, so `/` resolves to the entry point.
 
 ---
 
-### Option 4: VS Code Live Server
+### Option 3: VS Code
 
-1. Install "Live Server" extension in VS Code
-2. Open the project folder in VS Code
-3. Right-click `index.html`
-4. Select "Open with Live Server"
+1. Ensure PHP is installed and on your PATH
+2. Run `php -S localhost:8000` from the integrated terminal
+3. Open **http://localhost:8000**
 
 ---
 

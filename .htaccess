@@ -1,6 +1,11 @@
 RewriteEngine On
 
 # ==============================================
+# ENTRY POINT: single dynamic entry is index.php
+# ==============================================
+DirectoryIndex index.php
+
+# ==============================================
 # SEO: Prevent indexing of the entire application
 # ==============================================
 <IfModule mod_headers.c>

@@ -29,7 +29,7 @@ The application has a solid backend architecture with properly wired API endpoin
 | File | Issue | Severity |
 |------|-------|----------|
 | **`dashboard.php`** | ALL statistics hardcoded (248, 195, 37, 16, 8). ALL table rows are fake URLs. Detail drawer is placeholder. Notification badge "3" hardcoded. | 🔴 CRITICAL |
-| **`index.html`** | Entirely static HTML mockup with no backend integration. Contains duplicate older layout appended. User "Gufran" / "Admin" hardcoded. | 🔴 CRITICAL |
+| **`index.html`** | ✅ RESOLVED — removed. Replaced by `index.php`, a dynamic entry point that redirects to `dashboard.php` (authenticated) or `login.php`. | ✅ FIXED |
 | **`dashboard.php`** sidebar | User profile section shows `$currentUser['name']` dynamically but the navigation links all point to `#`. | ⚠️ MEDIUM |
 
 ### Files that ARE properly dynamic:
@@ -89,7 +89,7 @@ The application has a solid backend architecture with properly wired API endpoin
 | `/routes/settings.php` | ✓ API exists | But no frontend page consumes it |
 | `/routes/overrides.php` | ✓ API exists | overrides.js not loaded in any page |
 | `/routes/dashboard.php` | ✓ API exists | dashboard.js not loaded in dashboard.php |
-| `index.html` | 🔴 Orphan | Static mockup, not linked from anywhere |
+| `index.php` | ✓ Entry point | Redirects to dashboard.php / login.php (index.html removed) |
 
 ---
 
@@ -216,9 +216,8 @@ Base classes exist but existing modules have NOT been migrated to use them.
    - Remove hardcoded numbers (248, 195, 37, 16, 8)
    - Remove fake table rows
 
-2. **`index.html` is an obsolete static mockup** — Must be:
-   - Removed from the project root, OR
-   - Replaced with a redirect to `/dashboard.php` or `/login.php`
+2. **`index.html` obsolete static mockup** — ✅ RESOLVED: removed and replaced by
+   `index.php`, which redirects to `/dashboard.php` (authenticated) or `/login.php`.
 
 3. **`dashboard.js`, `overrides.js`, `settings.js` not loaded by any page** — These JS modules exist but are never `<script src>`'d in any HTML. They are dead code unless wired into a page.
 
@@ -257,7 +256,7 @@ Base classes exist but existing modules have NOT been migrated to use them.
 | File | Action Required |
 |------|----------------|
 | `dashboard.php` | **Rewrite** to use DashboardService API + include dashboard.js |
-| `index.html` | **Remove** or redirect to login/dashboard |
+| `index.html` | ✅ Removed — replaced by `index.php` redirect entry point |
 | `project.php` | **Add** `<script src="assets/js/overrides.js">` for override support |
 | `resources/views/auth/login.php` | **Remove** default credentials display (or gate behind APP_DEBUG) |
 

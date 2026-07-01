@@ -190,7 +190,7 @@ Configure proper cache headers for assets:
 
 ### CSS Files
 1. Create file in `assets/css/`
-2. Link in `index.html`:
+2. Link in the relevant PHP page (e.g. `dashboard.php`):
    ```html
    <link rel="stylesheet" href="assets/css/your-file.css">
    ```
