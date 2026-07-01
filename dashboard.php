@@ -1,8 +1,10 @@
 <?php
 /**
  * Dashboard Page
- * 
- * Protected dashboard - requires authentication
+ *
+ * Protected dashboard - requires authentication.
+ * All data is loaded dynamically via assets/js/dashboard.js from the
+ * existing DashboardController (routes/dashboard.php). No static data.
  */
 
 require __DIR__ . '/app/bootstrap.php';
@@ -25,25 +27,24 @@ $currentUser = $authService->user();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Dashboard - Audit withGufran</title>
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    
+
     <!-- Custom Styles -->
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body class="bg-gray-50 font-sans antialiased overflow-hidden">
-    
+
     <!-- Main Container -->
     <div class="flex h-screen">
-        
+
         <!-- Sidebar -->
-        <!-- MODULE ATTACHMENT POINT: Navigation and menu modules will be integrated here -->
         <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out -translate-x-full lg:translate-x-0">
-            
+
             <!-- Sidebar Header -->
             <div class="flex items-center justify-between h-16 px-6 border-b border-gray-200">
                 <div class="flex items-center space-x-3">
@@ -52,56 +53,26 @@ $currentUser = $authService->user();
                     </div>
                     <h1 class="text-lg font-bold text-gray-800">Audit withGufran</h1>
                 </div>
-                <!-- Mobile close button -->
                 <button id="closeSidebar" class="lg:hidden text-gray-500 hover:text-gray-700">
                     <i class="bi bi-x-lg text-xl"></i>
                 </button>
             </div>
-            
+
             <!-- Navigation Menu -->
-            <!-- MODULE ATTACHMENT POINT: Dynamic menu items will be rendered here -->
             <nav class="flex-1 px-4 py-6 overflow-y-auto">
                 <div class="space-y-1">
-                    
-                    <!-- Dashboard -->
-                    <a href="#" class="nav-item active flex items-center px-4 py-3 text-sm font-medium rounded-lg">
+                    <a href="dashboard.php" class="nav-item active flex items-center px-4 py-3 text-sm font-medium rounded-lg">
                         <i class="bi bi-speedometer2 text-lg mr-3"></i>
                         <span>Dashboard</span>
                     </a>
-                    
-                    <!-- Placeholder menu items for future modules -->
-                    <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                        <i class="bi bi-file-earmark-plus text-lg mr-3"></i>
-                        <span>New Audit</span>
-                    </a>
-                    
                     <a href="projects.php" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
                         <i class="bi bi-folder text-lg mr-3"></i>
                         <span>Projects</span>
                     </a>
-                    
-                    <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                        <i class="bi bi-clock-history text-lg mr-3"></i>
-                        <span>History</span>
-                    </a>
-                    
-                    <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                        <i class="bi bi-file-earmark-text text-lg mr-3"></i>
-                        <span>Reports</span>
-                    </a>
-                    
-                    <div class="pt-6 mt-6 border-t border-gray-200">
-                        <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                            <i class="bi bi-gear text-lg mr-3"></i>
-                            <span>Settings</span>
-                        </a>
-                    </div>
-                    
                 </div>
             </nav>
-            
+
             <!-- User Profile Section -->
-            <!-- MODULE ATTACHMENT POINT: User authentication and profile module -->
             <div class="border-t border-gray-200 p-4">
                 <div class="flex items-center space-x-3 px-4 py-3 rounded-lg bg-gray-50">
                     <div class="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center">
@@ -116,1209 +87,148 @@ $currentUser = $authService->user();
                     </a>
                 </div>
             </div>
-            
+
         </aside>
-        
+
         <!-- Main Content Area -->
         <div class="flex-1 flex flex-col overflow-hidden">
-            
+
             <!-- Topbar -->
-            <!-- MODULE ATTACHMENT POINT: Search, notifications, and action modules -->
             <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-                
-                <!-- Left: Mobile menu and breadcrumb -->
+
+                <!-- Left: Mobile menu and title -->
                 <div class="flex items-center space-x-4">
-                    <!-- Mobile menu toggle -->
                     <button id="openSidebar" class="lg:hidden text-gray-500 hover:text-gray-700">
                         <i class="bi bi-list text-2xl"></i>
                     </button>
-                    
-                    <!-- Project/Page Title Placeholder -->
-                    <!-- MODULE ATTACHMENT POINT: Dynamic breadcrumb/title will be injected here -->
                     <div>
                         <h2 class="text-lg font-semibold text-gray-800">Dashboard</h2>
                     </div>
                 </div>
-                
-                <!-- Right: Actions and theme toggle -->
+
+                <!-- Right: Actions (wired by dashboard.js) -->
                 <div class="flex items-center space-x-4">
-                    
-                    <!-- Search placeholder -->
-                    <!-- MODULE ATTACHMENT POINT: Search functionality -->
-                    <button class="text-gray-500 hover:text-gray-700">
+                    <!-- Global search (dashboard.js binds data-search-trigger + Ctrl/Cmd+K) -->
+                    <button data-search-trigger class="text-gray-500 hover:text-gray-700" title="Search (Ctrl+K)">
                         <i class="bi bi-search text-xl"></i>
                     </button>
-                    
-                    <!-- Notifications placeholder -->
-                    <!-- MODULE ATTACHMENT POINT: Notification system -->
-                    <button class="relative text-gray-500 hover:text-gray-700">
+
+                    <!-- Notifications (dashboard.js binds data-notif-trigger + data-notif-badge) -->
+                    <button data-notif-trigger class="relative text-gray-500 hover:text-gray-700" title="Notifications">
                         <i class="bi bi-bell text-xl"></i>
-                        <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">3</span>
+                        <span data-notif-badge class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 rounded-full text-xs text-white flex items-center justify-center"></span>
                     </button>
-                    
-                    <!-- Theme Toggle -->
-                    <!-- MODULE ATTACHMENT POINT: Theme switching functionality -->
-                    <button id="themeToggle" class="text-gray-500 hover:text-gray-700">
+
+                    <!-- Theme Toggle (dashboard.js binds #themeToggle) -->
+                    <button id="themeToggle" class="text-gray-500 hover:text-gray-700" title="Toggle theme">
                         <i class="bi bi-moon text-xl"></i>
                     </button>
-                    
                 </div>
-                
+
             </header>
-            
+
             <!-- Main Workspace -->
-            <!-- MODULE ATTACHMENT POINT: Main content modules will be loaded here -->
             <main class="flex-1 overflow-y-auto p-6 bg-gray-50">
-                
+
                 <!-- Welcome Section -->
                 <div class="mb-6">
                     <h3 class="text-2xl font-bold text-gray-800">SEO Audit Dashboard</h3>
                     <p class="text-gray-600 mt-1">Welcome back, <?= htmlspecialchars($currentUser['name']) ?>! Monitor and manage your SEO audit results</p>
                 </div>
-                
-                <!-- Dashboard Summary Cards -->
-                <!-- MODULE ATTACHMENT POINT: Statistics and metrics module -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-                    
-                    <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Total URLs</p>
-                                <p class="text-3xl font-bold text-gray-800 mt-2">248</p>
-                            </div>
-                            <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                                <i class="bi bi-link-45deg text-indigo-600 text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Passed</p>
-                                <p class="text-3xl font-bold text-green-600 mt-2">195</p>
-                            </div>
-                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                                <i class="bi bi-check-circle text-green-600 text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Warnings</p>
-                                <p class="text-3xl font-bold text-orange-600 mt-2">37</p>
-                            </div>
-                            <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                                <i class="bi bi-exclamation-triangle text-orange-600 text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Failed</p>
-                                <p class="text-3xl font-bold text-red-600 mt-2">16</p>
-                            </div>
-                            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                                <i class="bi bi-x-circle text-red-600 text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Processing</p>
-                                <p class="text-3xl font-bold text-blue-600 mt-2">8</p>
-                            </div>
-                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                <i class="bi bi-arrow-repeat text-blue-600 text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                </div>
-                
-                <!-- Action Toolbar -->
-                <!-- MODULE ATTACHMENT POINT: Module selection and bulk actions -->
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
-                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                        
-                        <!-- Left: Module Chips -->
-                        <div class="flex flex-wrap items-center gap-2">
-                            <span class="text-sm font-medium text-gray-700 mr-2">Modules:</span>
-                            <button class="module-chip active px-3 py-1.5 text-xs font-medium rounded-full border transition-all">
-                                <i class="bi bi-type-h1 mr-1"></i>
-                                H1
-                            </button>
-                            <button class="module-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-all">
-                                <i class="bi bi-card-text mr-1"></i>
-                                Meta
-                            </button>
-                            <button class="module-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-all">
-                                <i class="bi bi-question-circle mr-1"></i>
-                                FAQ
-                            </button>
-                            <button class="module-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-all">
-                                <i class="bi bi-eye-slash mr-1"></i>
-                                Noindex
-                            </button>
-                            <button class="module-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-all">
-                                <i class="bi bi-text-paragraph mr-1"></i>
-                                Lorem
-                            </button>
-                        </div>
-                        
-                        <!-- Right: Action Buttons -->
-                        <div class="flex items-center gap-2">
-                            <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                <i class="bi bi-check-square mr-2"></i>
-                                Bulk Actions
-                            </button>
-                            <button class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:opacity-90 transition-opacity">
-                                <i class="bi bi-play-fill mr-2"></i>
-                                Run Selected Modules
-                            </button>
-                        </div>
-                        
+
+                <!-- Dynamic Overview (stats, quick actions, recent projects, jobs, recent reports) -->
+                <!-- Populated by Dashboard.loadOverview() from routes/dashboard.php?action=overview -->
+                <div id="dashboardOverview"></div>
+
+                <!-- Recent Activity (populated from routes/dashboard.php?action=activity) -->
+                <div class="mt-2">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Recent Activity</h3>
+                    <div id="activityFeed" class="bg-white rounded-xl border border-gray-200 shadow-sm divide-y divide-gray-50">
+                        <p class="px-5 py-4 text-xs text-gray-400">Loading activity...</p>
                     </div>
                 </div>
-                
-                <!-- SEO Results Table -->
-                <!-- MODULE ATTACHMENT POINT: Data table and CRUD modules -->
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
-                    
-                    <!-- Table Header with Search and Filters -->
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                            <div>
-                                <h4 class="text-lg font-semibold text-gray-800">SEO Audit Results</h4>
-                                <p class="text-sm text-gray-600 mt-1">Analyze and track SEO metrics for your URLs</p>
-                            </div>
-                            
-                            <!-- Search and Filter -->
-                            <div class="flex items-center gap-3">
-                                <!-- Search Input -->
-                                <div class="relative">
-                                    <input 
-                                        type="text" 
-                                        id="searchInput"
-                                        placeholder="Search URLs..." 
-                                        class="w-64 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    >
-                                    <i class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                                </div>
-                                
-                                <!-- Filter Dropdown -->
-                                <div class="relative">
-                                    <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <i class="bi bi-funnel mr-2"></i>
-                                        Filter
-                                        <i class="bi bi-chevron-down ml-2 text-xs"></i>
-                                    </button>
-                                    <!-- MODULE ATTACHMENT POINT: Filter dropdown menu -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Desktop Table View -->
-                    <div class="hidden lg:block overflow-x-auto">
-                        <table class="w-full">
-                            <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-                                <tr>
-                                    <th class="px-4 py-4 text-left">
-                                        <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        URL
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        H1
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Meta
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        FAQ
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Noindex
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Lorem
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                <!-- Sample rows with data -->
-                                <tr class="table-row hover:bg-gray-50 cursor-pointer transition-colors" data-url-id="1">
-                                    <td class="px-4 py-4">
-                                        <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="flex items-center">
-                                            <i class="bi bi-link-45deg text-gray-400 mr-2"></i>
-                                            <span class="text-sm text-gray-900 font-medium max-w-xs truncate">/products/wireless-headphones</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-warning">Warning</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">
-                                            <i class="bi bi-check-circle mr-1"></i>
-                                            Complete
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <button class="text-gray-400 hover:text-indigo-600 transition-colors">
-                                            <i class="bi bi-three-dots-vertical"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                
-                                <tr class="table-row hover:bg-gray-50 cursor-pointer transition-colors" data-url-id="2">
-                                    <td class="px-4 py-4">
-                                        <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="flex items-center">
-                                            <i class="bi bi-link-45deg text-gray-400 mr-2"></i>
-                                            <span class="text-sm text-gray-900 font-medium max-w-xs truncate">/blog/seo-best-practices-2024</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-danger">Fail</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-warning">Warning</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-danger">Fail</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-danger">
-                                            <i class="bi bi-x-circle mr-1"></i>
-                                            Failed
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <button class="text-gray-400 hover:text-indigo-600 transition-colors">
-                                            <i class="bi bi-three-dots-vertical"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                
-                                <tr class="table-row hover:bg-gray-50 cursor-pointer transition-colors" data-url-id="3">
-                                    <td class="px-4 py-4">
-                                        <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="flex items-center">
-                                            <i class="bi bi-link-45deg text-gray-400 mr-2"></i>
-                                            <span class="text-sm text-gray-900 font-medium max-w-xs truncate">/services/digital-marketing</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">
-                                            <i class="bi bi-check-circle mr-1"></i>
-                                            Complete
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <button class="text-gray-400 hover:text-indigo-600 transition-colors">
-                                            <i class="bi bi-three-dots-vertical"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                
-                                <tr class="table-row hover:bg-gray-50 cursor-pointer transition-colors" data-url-id="4">
-                                    <td class="px-4 py-4">
-                                        <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="flex items-center">
-                                            <i class="bi bi-link-45deg text-gray-400 mr-2"></i>
-                                            <span class="text-sm text-gray-900 font-medium max-w-xs truncate">/about/our-team</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-warning">Warning</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-info">
-                                            <i class="bi bi-arrow-repeat mr-1"></i>
-                                            Processing
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-success">Pass</span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="status-badge badge-info">
-                                            <i class="bi bi-arrow-repeat mr-1"></i>
-                                            Processing
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <button class="text-gray-400 hover:text-indigo-600 transition-colors">
-                                            <i class="bi bi-three-dots-vertical"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Mobile Card View -->
-                    <div class="lg:hidden divide-y divide-gray-200">
-                        <!-- Mobile Card 1 -->
-                        <div class="mobile-card p-4 hover:bg-gray-50 cursor-pointer transition-colors" data-url-id="1">
-                            <div class="flex items-start justify-between mb-3">
-                                <div class="flex items-start space-x-3 flex-1 min-w-0">
-                                    <input type="checkbox" class="w-4 h-4 mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-900 truncate">/products/wireless-headphones</p>
-                                        <p class="text-xs text-gray-500 mt-1">Complete</p>
-                                    </div>
-                                </div>
-                                <button class="text-gray-400 hover:text-indigo-600 ml-2">
-                                    <i class="bi bi-three-dots-vertical"></i>
-                                </button>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div class="text-xs">
-                                    <span class="text-gray-500">H1:</span>
-                                    <span class="status-badge badge-success ml-1">Pass</span>
-                                </div>
-                                <div class="text-xs">
-                                    <span class="text-gray-500">Meta:</span>
-                                    <span class="status-badge badge-success ml-1">Pass</span>
-                                </div>
-                                <div class="text-xs">
-                                    <span class="text-gray-500">FAQ:</span>
-                                    <span class="status-badge badge-warning ml-1">Warning</span>
-                                </div>
-                                <div class="text-xs">
-                                    <span class="text-gray-500">Noindex:</span>
-                                    <span class="status-badge badge-success ml-1">Pass</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Mobile Card 2 -->
-                        <div class="mobile-card p-4 hover:bg-gray-50 cursor-pointer transition-colors" data-url-id="2">
-                            <div class="flex items-start justify-between mb-3">
-                                <div class="flex items-start space-x-3 flex-1 min-w-0">
-                                    <input type="checkbox" class="w-4 h-4 mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-900 truncate">/blog/seo-best-practices-2024</p>
-                                        <p class="text-xs text-red-600 mt-1">Failed</p>
-                                    </div>
-                                </div>
-                                <button class="text-gray-400 hover:text-indigo-600 ml-2">
-                                    <i class="bi bi-three-dots-vertical"></i>
-                                </button>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div class="text-xs">
-                                    <span class="text-gray-500">H1:</span>
-                                    <span class="status-badge badge-danger ml-1">Fail</span>
-                                </div>
-                                <div class="text-xs">
-                                    <span class="text-gray-500">Meta:</span>
-                                    <span class="status-badge badge-warning ml-1">Warning</span>
-                                </div>
-                                <div class="text-xs">
-                                    <span class="text-gray-500">FAQ:</span>
-                                    <span class="status-badge badge-success ml-1">Pass</span>
-                                </div>
-                                <div class="text-xs">
-                                    <span class="text-gray-500">Noindex:</span>
-                                    <span class="status-badge badge-danger ml-1">Fail</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Pagination -->
-                    <!-- MODULE ATTACHMENT POINT: Pagination module -->
-                    <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <p class="text-sm text-gray-600">
-                            Showing <span class="font-medium">1</span> to <span class="font-medium">4</span> of <span class="font-medium">248</span> results
-                        </p>
-                        <div class="flex items-center space-x-2">
-                            <button class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                <i class="bi bi-chevron-left"></i>
-                            </button>
-                            <button class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg">1</button>
-                            <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">2</button>
-                            <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">3</button>
-                            <span class="px-2 text-gray-500">...</span>
-                            <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">62</button>
-                            <button class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                <i class="bi bi-chevron-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                </div>
-                
+
             </main>
-            
+
         </div>
-        
+
     </div>
-    
+
     <!-- Sidebar Overlay for Mobile -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden"></div>
-    
-    <!-- Detail Drawer / Slide Panel -->
-    <!-- MODULE ATTACHMENT POINT: Detail view and editing functionality -->
-    <div id="detailDrawer" class="fixed inset-y-0 right-0 w-full sm:w-96 lg:w-[480px] bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out z-50 overflow-hidden flex flex-col">
-        
-        <!-- Drawer Header -->
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-purple-50">
-            <div class="flex-1 min-w-0">
-                <h3 class="text-lg font-semibold text-gray-800 truncate">URL Details</h3>
-                <p class="text-sm text-gray-600 mt-1 truncate" id="drawerUrl">/products/wireless-headphones</p>
-            </div>
-            <button id="closeDrawer" class="ml-4 text-gray-400 hover:text-gray-600 transition-colors">
-                <i class="bi bi-x-lg text-xl"></i>
-            </button>
-        </div>
-        
-        <!-- Drawer Content -->
-        <div class="flex-1 overflow-y-auto px-6 py-6">
-            
-            <!-- Overall Status -->
-            <div class="mb-6">
-                <h4 class="text-sm font-semibold text-gray-700 mb-3">Overall Status</h4>
-                <div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <i class="bi bi-check-circle-fill text-green-600 text-2xl mr-3"></i>
-                            <div>
-                                <p class="font-semibold text-green-800">Complete</p>
-                                <p class="text-sm text-green-700">All modules processed</p>
-                            </div>
-                        </div>
-                        <button class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
-                            <i class="bi bi-arrow-clockwise mr-1"></i>
-                            Retry
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Audit Details -->
-            <!-- MODULE ATTACHMENT POINT: Detailed audit results -->
-            <div class="mb-6">
-                <h4 class="text-sm font-semibold text-gray-700 mb-3">Audit Details</h4>
-                <div class="space-y-3">
-                    
-                    <div class="bg-white border border-gray-200 rounded-lg p-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-700">H1 Check</span>
-                            <span class="status-badge badge-success">Pass</span>
-                        </div>
-                        <p class="text-xs text-gray-600">H1 tag found and properly formatted</p>
-                    </div>
-                    
-                    <div class="bg-white border border-gray-200 rounded-lg p-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-700">Meta Description</span>
-                            <span class="status-badge badge-success">Pass</span>
-                        </div>
-                        <p class="text-xs text-gray-600">Meta description present (142 characters)</p>
-                    </div>
-                    
-                    <div class="bg-white border border-gray-200 rounded-lg p-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-700">FAQ Schema</span>
-                            <span class="status-badge badge-warning">Warning</span>
-                        </div>
-                        <p class="text-xs text-gray-600">FAQ schema detected but missing some fields</p>
-                    </div>
-                    
-                    <div class="bg-white border border-gray-200 rounded-lg p-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-700">Noindex Check</span>
-                            <span class="status-badge badge-success">Pass</span>
-                        </div>
-                        <p class="text-xs text-gray-600">Page is indexable</p>
-                    </div>
-                    
-                    <div class="bg-white border border-gray-200 rounded-lg p-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-700">Lorem Ipsum</span>
-                            <span class="status-badge badge-success">Pass</span>
-                        </div>
-                        <p class="text-xs text-gray-600">No placeholder text detected</p>
-                    </div>
-                    
-                </div>
-            </div>
-            
-            <!-- Logs Section -->
-            <!-- MODULE ATTACHMENT POINT: Audit logs and history -->
-            <div class="mb-6">
-                <h4 class="text-sm font-semibold text-gray-700 mb-3">Logs</h4>
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-48 overflow-y-auto">
-                    <div class="space-y-2 font-mono text-xs">
-                        <div class="text-gray-600">
-                            <span class="text-gray-400">[12:34:56]</span> Starting audit for URL
-                        </div>
-                        <div class="text-gray-600">
-                            <span class="text-gray-400">[12:34:57]</span> Fetching page content...
-                        </div>
-                        <div class="text-green-600">
-                            <span class="text-gray-400">[12:34:58]</span> ✓ H1 check passed
-                        </div>
-                        <div class="text-green-600">
-                            <span class="text-gray-400">[12:34:58]</span> ✓ Meta description found
-                        </div>
-                        <div class="text-orange-600">
-                            <span class="text-gray-400">[12:34:59]</span> ⚠ FAQ schema incomplete
-                        </div>
-                        <div class="text-green-600">
-                            <span class="text-gray-400">[12:34:59]</span> ✓ Noindex check passed
-                        </div>
-                        <div class="text-green-600">
-                            <span class="text-gray-400">[12:35:00]</span> ✓ No lorem ipsum detected
-                        </div>
-                        <div class="text-gray-600">
-                            <span class="text-gray-400">[12:35:00]</span> Audit completed
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Notes Section -->
-            <!-- MODULE ATTACHMENT POINT: User notes and comments -->
-            <div class="mb-6">
-                <h4 class="text-sm font-semibold text-gray-700 mb-3">Notes</h4>
-                <textarea 
-                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                    rows="4"
-                    placeholder="Add notes about this URL..."
-                ></textarea>
-                <button class="mt-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
-                    Save Notes
-                </button>
-            </div>
-            
-            <!-- Status Override -->
-            <!-- MODULE ATTACHMENT POINT: Manual status control -->
-            <div class="mb-6">
-                <h4 class="text-sm font-semibold text-gray-700 mb-3">Status Override</h4>
-                <div class="flex flex-wrap gap-2">
-                    <button class="px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        <i class="bi bi-check-circle mr-1"></i>
-                        Mark as Pass
-                    </button>
-                    <button class="px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        <i class="bi bi-exclamation-triangle mr-1"></i>
-                        Mark as Warning
-                    </button>
-                    <button class="px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        <i class="bi bi-x-circle mr-1"></i>
-                        Mark as Failed
-                    </button>
-                    <button class="px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        <i class="bi bi-dash-circle mr-1"></i>
-                        Ignore
-                    </button>
-                </div>
-            </div>
-            
-        </div>
-        
-        <!-- Drawer Footer -->
-        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <div class="flex items-center justify-between gap-3">
-                <button class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <i class="bi bi-arrow-clockwise mr-2"></i>
-                    Re-run Audit
-                </button>
-                <button class="flex-1 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:opacity-90 transition-opacity">
-                    <i class="bi bi-download mr-2"></i>
-                    Export
-                </button>
-            </div>
-        </div>
-        
-    </div>
-    
-    <!-- Drawer Overlay -->
-    <div id="drawerOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
-    
+
     <!-- JavaScript -->
     <script src="assets/js/app.js"></script>
-    
-</body>
-</html>
-            
-            <!-- Logo/Brand -->
-            <div class="flex items-center justify-between p-6 border-b border-indigo-700">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                        <i class="fas fa-clipboard-check text-indigo-900 text-xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-lg font-bold">Audit</h1>
-                        <p class="text-xs text-indigo-300">withGufran</p>
-                    </div>
-                </div>
-                <!-- Mobile close button -->
-                <button id="closeSidebar" class="lg:hidden text-white">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            
-            <!-- Navigation Menu -->
-            <!-- MODULE ATTACHMENT POINT: Menu items will be dynamically populated -->
-            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                
-                <!-- Dashboard -->
-                <a href="#" class="sidebar-item active flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-indigo-800">
-                    <i class="fas fa-home text-lg"></i>
-                    <span class="font-medium">Dashboard</span>
-                </a>
-                
-                <!-- New Audit -->
-                <a href="#" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-indigo-800">
-                    <i class="fas fa-plus-circle text-lg"></i>
-                    <span class="font-medium">New Audit</span>
-                </a>
-                
-                <!-- Audit History -->
-                <a href="#" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-indigo-800">
-                    <i class="fas fa-history text-lg"></i>
-                    <span class="font-medium">History</span>
-                </a>
-                
-                <!-- Reports -->
-                <a href="#" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-indigo-800">
-                    <i class="fas fa-file-alt text-lg"></i>
-                    <span class="font-medium">Reports</span>
-                </a>
-                
-                <!-- Settings -->
-                <a href="#" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-indigo-800">
-                    <i class="fas fa-cog text-lg"></i>
-                    <span class="font-medium">Settings</span>
-                </a>
-            </nav>
-            
-            <!-- User Profile Section -->
-            <!-- MODULE ATTACHMENT POINT: User authentication module -->
-            <div class="p-4 border-t border-indigo-700">
-                <div class="flex items-center space-x-3 px-4 py-3 rounded-lg bg-indigo-800">
-                    <div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-sm font-semibold">Gufran</p>
-                        <p class="text-xs text-indigo-300">Auditor</p>
-                    </div>
-                    <i class="fas fa-ellipsis-v text-indigo-300"></i>
-                </div>
-            </div>
-            
-        </aside>
-        
-        <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            
-            <!-- Top Bar -->
-            <!-- MODULE ATTACHMENT POINT: Notification and search modules -->
-            <header class="bg-white shadow-sm z-10">
-                <div class="flex items-center justify-between px-6 py-4">
-                    
-                    <!-- Mobile Menu Button -->
-                    <button id="openSidebar" class="lg:hidden text-gray-600 hover:text-gray-900">
-                        <i class="fas fa-bars text-2xl"></i>
-                    </button>
-                    
-                    <!-- Search Bar -->
-                    <div class="flex-1 max-w-2xl mx-4">
-                        <div class="relative">
-                            <input type="text" 
-                                   placeholder="Search audits, reports..." 
-                                   class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                        </div>
-                    </div>
-                    
-                    <!-- Top Bar Actions -->
-                    <div class="flex items-center space-x-4">
-                        <!-- Notifications -->
-                        <button class="relative text-gray-600 hover:text-gray-900">
-                            <i class="fas fa-bell text-xl"></i>
-                            <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">3</span>
-                        </button>
-                        
-                        <!-- Help -->
-                        <button class="text-gray-600 hover:text-gray-900">
-                            <i class="fas fa-question-circle text-xl"></i>
-                        </button>
-                    </div>
-                </div>
-            </header>
-            
-            <!-- Main Workspace -->
-            <!-- MODULE ATTACHMENT POINT: Main content modules will be loaded here -->
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
-                
-                <!-- Page Header -->
-                <div class="mb-6">
-                    <h2 class="text-3xl font-bold text-gray-800">Dashboard</h2>
-                    <p class="text-gray-600 mt-1">Welcome back! Here's your audit overview.</p>
-                </div>
-                
-                <!-- Stats Cards -->
-                <!-- MODULE ATTACHMENT POINT: Statistics module -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    
-                    <!-- Total Audits Card -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 card-hover cursor-pointer">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm font-medium">Total Audits</p>
-                                <p class="text-3xl font-bold text-gray-800 mt-2">248</p>
-                                <p class="text-green-500 text-sm mt-2">
-                                    <i class="fas fa-arrow-up"></i> 12% from last month
-                                </p>
-                            </div>
-                            <div class="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-clipboard-list text-indigo-600 text-2xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Pending Reviews Card -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 card-hover cursor-pointer">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm font-medium">Pending Reviews</p>
-                                <p class="text-3xl font-bold text-gray-800 mt-2">37</p>
-                                <p class="text-orange-500 text-sm mt-2">
-                                    <i class="fas fa-clock"></i> Requires attention
-                                </p>
-                            </div>
-                            <div class="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-hourglass-half text-orange-600 text-2xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Completed Card -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 card-hover cursor-pointer">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm font-medium">Completed</p>
-                                <p class="text-3xl font-bold text-gray-800 mt-2">195</p>
-                                <p class="text-green-500 text-sm mt-2">
-                                    <i class="fas fa-check-circle"></i> 78.6% success rate
-                                </p>
-                            </div>
-                            <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-check-double text-green-600 text-2xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Failed/Issues Card -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 card-hover cursor-pointer">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm font-medium">Issues Found</p>
-                                <p class="text-3xl font-bold text-gray-800 mt-2">16</p>
-                                <p class="text-red-500 text-sm mt-2">
-                                    <i class="fas fa-exclamation-triangle"></i> Needs review
-                                </p>
-                            </div>
-                            <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-exclamation-circle text-red-600 text-2xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                </div>
-                
-                <!-- Quick Actions -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                    <button class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl card-hover flex items-center justify-between">
-                        <div class="text-left">
-                            <p class="text-lg font-semibold">Start New Audit</p>
-                            <p class="text-indigo-100 text-sm mt-1">Begin a fresh audit process</p>
-                        </div>
-                        <i class="fas fa-arrow-right text-2xl"></i>
-                    </button>
-                    
-                    <button class="bg-white border-2 border-indigo-200 text-indigo-600 rounded-xl p-6 shadow-sm hover:shadow-md card-hover flex items-center justify-between">
-                        <div class="text-left">
-                            <p class="text-lg font-semibold">Import Data</p>
-                            <p class="text-gray-500 text-sm mt-1">Upload audit files</p>
-                        </div>
-                        <i class="fas fa-upload text-2xl"></i>
-                    </button>
-                    
-                    <button class="bg-white border-2 border-indigo-200 text-indigo-600 rounded-xl p-6 shadow-sm hover:shadow-md card-hover flex items-center justify-between">
-                        <div class="text-left">
-                            <p class="text-lg font-semibold">Generate Report</p>
-                            <p class="text-gray-500 text-sm mt-1">Export audit summary</p>
-                        </div>
-                        <i class="fas fa-file-export text-2xl"></i>
-                    </button>
-                </div>
-                
-                <!-- Recent Audits Table -->
-                <!-- MODULE ATTACHMENT POINT: Audit data table module -->
-                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                        <h3 class="text-xl font-bold text-gray-800">Recent Audits</h3>
-                        <div class="flex items-center space-x-3">
-                            <button class="text-gray-600 hover:text-indigo-600">
-                                <i class="fas fa-filter"></i> Filter
-                            </button>
-                            <button class="text-gray-600 hover:text-indigo-600">
-                                <i class="fas fa-download"></i> Export
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Table - Desktop View -->
-                    <div class="hidden md:block overflow-x-auto">
-                        <table class="w-full">
-                            <thead class="bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Audit ID
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Project Name
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Date
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Priority
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <!-- Sample Row 1 -->
-                                <tr class="hover:bg-gray-50 cursor-pointer">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm font-medium text-indigo-600">#AUD-2401</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm text-gray-900">Financial Year End 2024</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm text-gray-600">Jun 12, 2026</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                            Completed
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                                            High
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="text-gray-600 hover:text-gray-900 mr-3">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="text-red-600 hover:text-red-900">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Sample Row 2 -->
-                                <tr class="hover:bg-gray-50 cursor-pointer">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm font-medium text-indigo-600">#AUD-2402</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm text-gray-900">Q2 Compliance Check</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm text-gray-600">Jun 10, 2026</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                            In Progress
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                            Medium
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="text-gray-600 hover:text-gray-900 mr-3">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="text-red-600 hover:text-red-900">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Sample Row 3 -->
-                                <tr class="hover:bg-gray-50 cursor-pointer">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm font-medium text-indigo-600">#AUD-2403</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm text-gray-900">Internal Control Review</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm text-gray-600">Jun 08, 2026</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                            Pending
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                                            High
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="text-gray-600 hover:text-gray-900 mr-3">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="text-red-600 hover:text-red-900">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Sample Row 4 -->
-                                <tr class="hover:bg-gray-50 cursor-pointer">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm font-medium text-indigo-600">#AUD-2404</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm text-gray-900">Vendor Assessment 2026</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm text-gray-600">Jun 05, 2026</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                            Completed
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                                            Low
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="text-gray-600 hover:text-gray-900 mr-3">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="text-red-600 hover:text-red-900">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Mobile Card View -->
-                    <div class="md:hidden divide-y divide-gray-200">
-                        <!-- Mobile Card 1 -->
-                        <div class="p-4 hover:bg-gray-50 cursor-pointer">
-                            <div class="flex items-start justify-between mb-2">
-                                <span class="text-sm font-medium text-indigo-600">#AUD-2401</span>
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                    Completed
-                                </span>
-                            </div>
-                            <h4 class="font-semibold text-gray-900 mb-1">Financial Year End 2024</h4>
-                            <p class="text-sm text-gray-600 mb-2">Jun 12, 2026</p>
-                            <div class="flex items-center justify-between">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                                    High Priority
-                                </span>
-                                <div class="flex space-x-3">
-                                    <button class="text-indigo-600"><i class="fas fa-eye"></i></button>
-                                    <button class="text-gray-600"><i class="fas fa-edit"></i></button>
-                                    <button class="text-red-600"><i class="fas fa-trash"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Mobile Card 2 -->
-                        <div class="p-4 hover:bg-gray-50 cursor-pointer">
-                            <div class="flex items-start justify-between mb-2">
-                                <span class="text-sm font-medium text-indigo-600">#AUD-2402</span>
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                    In Progress
-                                </span>
-                            </div>
-                            <h4 class="font-semibold text-gray-900 mb-1">Q2 Compliance Check</h4>
-                            <p class="text-sm text-gray-600 mb-2">Jun 10, 2026</p>
-                            <div class="flex items-center justify-between">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                    Medium Priority
-                                </span>
-                                <div class="flex space-x-3">
-                                    <button class="text-indigo-600"><i class="fas fa-eye"></i></button>
-                                    <button class="text-gray-600"><i class="fas fa-edit"></i></button>
-                                    <button class="text-red-600"><i class="fas fa-trash"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Mobile Card 3 -->
-                        <div class="p-4 hover:bg-gray-50 cursor-pointer">
-                            <div class="flex items-start justify-between mb-2">
-                                <span class="text-sm font-medium text-indigo-600">#AUD-2403</span>
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                    Pending
-                                </span>
-                            </div>
-                            <h4 class="font-semibold text-gray-900 mb-1">Internal Control Review</h4>
-                            <p class="text-sm text-gray-600 mb-2">Jun 08, 2026</p>
-                            <div class="flex items-center justify-between">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                                    High Priority
-                                </span>
-                                <div class="flex space-x-3">
-                                    <button class="text-indigo-600"><i class="fas fa-eye"></i></button>
-                                    <button class="text-gray-600"><i class="fas fa-edit"></i></button>
-                                    <button class="text-red-600"><i class="fas fa-trash"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Mobile Card 4 -->
-                        <div class="p-4 hover:bg-gray-50 cursor-pointer">
-                            <div class="flex items-start justify-between mb-2">
-                                <span class="text-sm font-medium text-indigo-600">#AUD-2404</span>
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                    Completed
-                                </span>
-                            </div>
-                            <h4 class="font-semibold text-gray-900 mb-1">Vendor Assessment 2026</h4>
-                            <p class="text-sm text-gray-600 mb-2">Jun 05, 2026</p>
-                            <div class="flex items-center justify-between">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                                    Low Priority
-                                </span>
-                                <div class="flex space-x-3">
-                                    <button class="text-indigo-600"><i class="fas fa-eye"></i></button>
-                                    <button class="text-gray-600"><i class="fas fa-edit"></i></button>
-                                    <button class="text-red-600"><i class="fas fa-trash"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Pagination -->
-                    <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                        <p class="text-sm text-gray-600">Showing 1 to 4 of 248 results</p>
-                        <div class="flex space-x-2">
-                            <button class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                                Previous
-                            </button>
-                            <button class="px-3 py-1 bg-indigo-600 text-white rounded text-sm">1</button>
-                            <button class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">2</button>
-                            <button class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">3</button>
-                            <button class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                                Next
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-            </main>
-        </div>
-    </div>
-    
-    <!-- Overlay for mobile sidebar -->
-    <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden lg:hidden"></div>
-    
-    <!-- JavaScript for interactivity -->
-    <script src="assets/js/app.js"></script>
+    <script src="assets/js/dashboard.js"></script>
+    <script>
+        // Wire the dashboard to the existing DashboardController/DashboardService.
+        // dashboard.js self-initializes search/notifications/theme; we trigger the
+        // overview render and the recent activity feed here.
+        (function () {
+            function esc(str) {
+                if (!str) return '';
+                var d = document.createElement('div');
+                d.appendChild(document.createTextNode(str));
+                return d.innerHTML;
+            }
+
+            function timeAgo(dateStr) {
+                if (!dateStr) return '';
+                var diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+                if (isNaN(diff)) return '';
+                if (diff < 60) return 'just now';
+                if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+                if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+                if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+                return new Date(dateStr).toLocaleDateString();
+            }
+
+            function loadActivity() {
+                var feed = document.getElementById('activityFeed');
+                if (!feed) return;
+
+                fetch('routes/dashboard.php?action=activity&limit=15')
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (!data.success || !data.activity || data.activity.length === 0) {
+                            feed.innerHTML = '<p class="px-5 py-4 text-xs text-gray-400">No recent activity.</p>';
+                            return;
+                        }
+                        var html = '';
+                        data.activity.forEach(function (a) {
+                            html += '<div class="px-5 py-3 flex items-start gap-3">';
+                            html += '<div class="w-7 h-7 bg-indigo-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"><i class="bi bi-activity text-indigo-500 text-xs"></i></div>';
+                            html += '<div class="flex-1 min-w-0">';
+                            html += '<p class="text-sm text-gray-800">' + esc(a.description || a.action) + '</p>';
+                            var meta = [];
+                            if (a.user_name) meta.push(esc(a.user_name));
+                            if (a.project_name) meta.push(esc(a.project_name));
+                            if (meta.length) html += '<p class="text-xs text-gray-400 mt-0.5">' + meta.join(' · ') + '</p>';
+                            html += '</div>';
+                            html += '<span class="text-[10px] text-gray-400 flex-shrink-0">' + timeAgo(a.created_at) + '</span>';
+                            html += '</div>';
+                        });
+                        feed.innerHTML = html;
+                    })
+                    .catch(function () {
+                        feed.innerHTML = '<p class="px-5 py-4 text-xs text-red-400">Failed to load activity.</p>';
+                    });
+            }
+
+            function boot() {
+                if (window.Dashboard && typeof window.Dashboard.loadOverview === 'function') {
+                    window.Dashboard.loadOverview(document.getElementById('dashboardOverview'));
+                }
+                loadActivity();
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', boot);
+            } else {
+                boot();
+            }
+        })();
+    </script>
+
 </body>
 </html>

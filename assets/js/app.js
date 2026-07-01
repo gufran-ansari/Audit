@@ -100,28 +100,34 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // ============================================
-    // Theme Toggle (Placeholder)
-    // MODULE ATTACHMENT POINT: Theme switching functionality
+    // Theme Toggle (global, persistent)
+    // Single theme manager for the whole app. Loaded on every page via
+    // app.js, so preference persists across navigation and refresh.
     // ============================================
     const themeToggle = document.getElementById('themeToggle');
-    let isDarkMode = false;
-    
+
+    function applyTheme(isDark) {
+        document.documentElement.classList.toggle('dark', isDark);
+        document.body.classList.toggle('dark-mode', isDark);
+        if (themeToggle) {
+            const icon = themeToggle.querySelector('i');
+            if (icon) {
+                icon.className = isDark ? 'bi bi-sun text-xl' : 'bi bi-moon text-xl';
+            }
+        }
+    }
+
+    // Apply saved preference on load (fall back to system preference)
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = savedTheme === 'dark' ||
+        (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    applyTheme(prefersDark);
+
     if (themeToggle) {
         themeToggle.addEventListener('click', function() {
-            isDarkMode = !isDarkMode;
-            const icon = this.querySelector('i');
-            
-            if (isDarkMode) {
-                icon.classList.remove('bi-moon');
-                icon.classList.add('bi-sun');
-                document.body.classList.add('dark-mode');
-            } else {
-                icon.classList.remove('bi-sun');
-                icon.classList.add('bi-moon');
-                document.body.classList.remove('dark-mode');
-            }
-            
-            console.log('Theme toggled:', isDarkMode ? 'dark' : 'light');
+            const isDark = !document.documentElement.classList.contains('dark');
+            applyTheme(isDark);
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
         });
     }
     
@@ -274,47 +280,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ============================================
-    // Placeholder Button Handlers
-    // MODULE ATTACHMENT POINT: Action button functionality
-    // ============================================
-    
-    // Search button
-    const searchBtn = document.querySelector('.bi-search').closest('button');
-    if (searchBtn) {
-        searchBtn.addEventListener('click', function() {
-            console.log('Search clicked - MODULE ATTACHMENT POINT');
-        });
-    }
-    
-    // Notification button
-    const notificationBtn = document.querySelector('.bi-bell').closest('button');
-    if (notificationBtn) {
-        notificationBtn.addEventListener('click', function() {
-            console.log('Notifications clicked - MODULE ATTACHMENT POINT');
-        });
-    }
-    
-    // Filter button
-    const filterBtn = document.querySelector('.bi-funnel')?.closest('button');
-    if (filterBtn) {
-        filterBtn.addEventListener('click', function() {
-            console.log('Filter clicked - MODULE ATTACHMENT POINT');
-        });
-    }
-    
-    // New Audit button
-    const newAuditBtn = document.querySelector('.bi-plus-lg')?.closest('button');
-    if (newAuditBtn) {
-        newAuditBtn.addEventListener('click', function() {
-            console.log('New Audit clicked - MODULE ATTACHMENT POINT');
-        });
-    }
-    
-    // ============================================
     // Initialize
     // ============================================
     console.log('Audit withGufran - Base Dashboard Layout Initialized');
-    console.log('Phase 1, Part 1: Ready for module integration');
     
 });
 

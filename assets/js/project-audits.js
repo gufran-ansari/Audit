@@ -16,6 +16,11 @@ function initializeAuditControls() {
     if (runAuditsBtn) {
         runAuditsBtn.addEventListener('click', runSelectedAudits);
     }
+
+    const runSelectedPagesBtn = document.getElementById('runSelectedPagesBtn');
+    if (runSelectedPagesBtn) {
+        runSelectedPagesBtn.addEventListener('click', runSelectedPages);
+    }
     
     // Toggle Word Occurrence keyword input visibility
     const wordCheckbox = document.getElementById('wordAuditCheckbox');
@@ -150,56 +155,122 @@ async function runSelectedAudits() {
         if (loremChecked) moduleKeys.push('lorem');
         if (stagingChecked) moduleKeys.push('staging');
         if (wordChecked) moduleKeys.push('word');
-        
-        showNotification(`Running ${selectedModules.join(', ')}...`, 'info');
-        
-        // Single request to orchestrator engine
-        const formData = new FormData();
-        formData.append('action', 'run_project');
-        formData.append('project_id', projectId);
-        formData.append('modules', moduleKeys.join(','));
-        
-        if (wordChecked && wordKeyword) {
-            formData.append('keyword', wordKeyword);
-        }
-        
-        const response = await fetch('/routes/audit_engine.php', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Audit failed');
-        }
-        
-        // Show completion summary
-        const summary = `Audit completed: ${data.success_pages} passed, ${data.failed_pages} failed out of ${data.total_pages} pages`;
-        showNotification(summary, 'success');
-        
+
+        // Create a background job (returns immediately) via the existing job system.
+        // Backend: routes/jobs.php?action=create -> JobService -> queued audit_job.
+        const job = await submitBackgroundJob(moduleKeys, wordKeyword);
+
+        showNotification(`Audit queued: ${selectedModules.join(', ')} for all URLs. Processing in the background...`, 'info');
+
         // Refresh word search history if word module was run
         if (wordChecked && typeof loadWordSearchHistory === 'function') {
             loadWordSearchHistory();
         }
-        
-        // Reload pages to show results
-        if (typeof loadPages === 'function') {
-            loadPages();
-        }
-        
-        // Reload summary stats
-        if (typeof loadAuditSummary === 'function') {
-            loadAuditSummary();
-        }
-        
+
+        // Kick off background processing and live progress polling (no page refresh).
+        // loadJobStatusPanel + startJobPolling drive live progress and workspace updates.
+        loadJobStatusPanel();
+        triggerJobProcessing();
+        startJobPolling();
+
     } catch (error) {
         console.error('Audit error:', error);
-        showNotification('Audit execution failed: ' + error.message, 'error');
+        showNotification('Could not start audit: ' + error.message, 'error');
     } finally {
+        // Background job created — release the button immediately.
         isAuditRunning = false;
         runBtn.disabled = false;
         runBtn.innerHTML = originalHtml;
+    }
+}
+
+/**
+ * Run selected audits for only the checked pages.
+ * Reuses module selection + the existing run_pages engine action.
+ */
+async function runSelectedPages() {
+    if (isAuditRunning) {
+        alert('An audit is already running. Please wait for it to complete.');
+        return;
+    }
+
+    const pageIds = (typeof getSelectedPageIds === 'function') ? getSelectedPageIds() : [];
+    if (pageIds.length === 0) {
+        alert('Select one or more pages using the checkboxes first.');
+        return;
+    }
+
+    // Reuse the same module selection as the main run button
+    const moduleKeys = [];
+    if (document.getElementById('h1AuditCheckbox')?.checked) moduleKeys.push('h1');
+    if (document.getElementById('metaAuditCheckbox')?.checked) moduleKeys.push('meta');
+    if (document.getElementById('noindexAuditCheckbox')?.checked) moduleKeys.push('noindex');
+    if (document.getElementById('faqAuditCheckbox')?.checked) moduleKeys.push('faq');
+    if (document.getElementById('loremAuditCheckbox')?.checked) moduleKeys.push('lorem');
+    if (document.getElementById('stagingAuditCheckbox')?.checked) moduleKeys.push('staging');
+    const wordChecked = document.getElementById('wordAuditCheckbox')?.checked;
+    if (wordChecked) moduleKeys.push('word');
+
+    if (moduleKeys.length === 0) {
+        alert('Please select at least one audit module to run.');
+        return;
+    }
+
+    let wordKeyword = '';
+    if (wordChecked) {
+        wordKeyword = (document.getElementById('wordKeywordInput')?.value || '').trim();
+        if (wordKeyword === '') {
+            alert('Please enter at least one keyword for the Word Occurrence audit.');
+            document.getElementById('wordKeywordInput')?.focus();
+            return;
+        }
+    }
+
+    if (!confirm(`Run selected modules for ${pageIds.length} selected page(s)?`)) {
+        return;
+    }
+
+    isAuditRunning = true;
+    const btn = document.getElementById('runSelectedPagesBtn');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split mr-2 animate-spin"></i>Running...';
+    }
+
+    try {
+        // Reuse the existing orchestrator run_pages action (synchronous for a bounded selection).
+        const formData = new FormData();
+        formData.append('action', 'run_pages');
+        formData.append('project_id', projectId);
+        formData.append('page_ids', pageIds.join(','));
+        formData.append('modules', moduleKeys.join(','));
+        if (wordChecked && wordKeyword) {
+            formData.append('keyword', wordKeyword);
+        }
+
+        const response = await fetch('/routes/audit_engine.php', { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Audit failed');
+        }
+
+        showNotification(`Audit completed: ${data.success_pages} ok, ${data.failed_pages} failed of ${data.total_pages} page(s)`, 'success');
+
+        // Refresh workspace to reflect new results
+        if (typeof loadPages === 'function') loadPages();
+        if (typeof loadPageStats === 'function') loadPageStats();
+        if (typeof loadAuditSummary === 'function') loadAuditSummary();
+    } catch (error) {
+        console.error('Selected pages audit error:', error);
+        showNotification('Could not run selected pages: ' + error.message, 'error');
+    } finally {
+        isAuditRunning = false;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
     }
 }
 
@@ -566,11 +637,21 @@ function startJobPolling() {
     jobPollInterval = setInterval(async () => {
         await loadJobStatusPanel();
         await triggerJobProcessing();
+        // Live workspace updates while a job is active (Step 5):
+        // refresh status badges/results and summary cards without a page refresh.
+        if (typeof loadPages === 'function') loadPages();
+        if (typeof loadPageStats === 'function') loadPageStats();
+        if (typeof loadAuditSummary === 'function') loadAuditSummary();
+        if (typeof loadRetryInfo === 'function') loadRetryInfo();
     }, 5000);
 }
 
 function stopJobPolling() {
     if (jobPollInterval) { clearInterval(jobPollInterval); jobPollInterval = null; }
+    // Final refresh once processing has stopped so the workspace shows the completed state.
+    if (typeof loadPages === 'function') loadPages();
+    if (typeof loadPageStats === 'function') loadPageStats();
+    if (typeof loadAuditSummary === 'function') loadAuditSummary();
 }
 
 async function pauseJob(jobId) {

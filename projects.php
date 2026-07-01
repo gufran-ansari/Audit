@@ -63,28 +63,10 @@ $currentUser = $authService->user();
                         <i class="bi bi-speedometer2 text-lg mr-3"></i>
                         <span>Dashboard</span>
                     </a>
-                    <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                        <i class="bi bi-file-earmark-plus text-lg mr-3"></i>
-                        <span>New Audit</span>
-                    </a>
                     <a href="projects.php" class="nav-item active flex items-center px-4 py-3 text-sm font-medium rounded-lg">
                         <i class="bi bi-folder text-lg mr-3"></i>
                         <span>Projects</span>
                     </a>
-                    <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                        <i class="bi bi-clock-history text-lg mr-3"></i>
-                        <span>History</span>
-                    </a>
-                    <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                        <i class="bi bi-file-earmark-text text-lg mr-3"></i>
-                        <span>Reports</span>
-                    </a>
-                    <div class="pt-6 mt-6 border-t border-gray-200">
-                        <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                            <i class="bi bi-gear text-lg mr-3"></i>
-                            <span>Settings</span>
-                        </a>
-                    </div>
                 </div>
             </nav>
             
@@ -120,14 +102,14 @@ $currentUser = $authService->user();
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button class="text-gray-500 hover:text-gray-700">
+                    <button data-search-trigger class="text-gray-500 hover:text-gray-700" title="Search (Ctrl+K)">
                         <i class="bi bi-search text-xl"></i>
                     </button>
-                    <button class="relative text-gray-500 hover:text-gray-700">
+                    <button data-notif-trigger class="relative text-gray-500 hover:text-gray-700" title="Notifications">
                         <i class="bi bi-bell text-xl"></i>
-                        <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">3</span>
+                        <span data-notif-badge class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 rounded-full text-xs text-white flex items-center justify-center"></span>
                     </button>
-                    <button id="themeToggle" class="text-gray-500 hover:text-gray-700">
+                    <button id="themeToggle" class="text-gray-500 hover:text-gray-700" title="Toggle theme">
                         <i class="bi bi-moon text-xl"></i>
                     </button>
                 </div>
@@ -314,6 +296,7 @@ $currentUser = $authService->user();
     
     <!-- JavaScript -->
     <script src="assets/js/app.js"></script>
+    <script src="assets/js/dashboard.js"></script>
     <script src="assets/js/projects.js"></script>
     
 </body>

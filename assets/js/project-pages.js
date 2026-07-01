@@ -209,7 +209,54 @@ function renderPages(pages, pagination) {
     `).join('');
     
     renderPagesPagination(pagination);
+
+    // Re-bind row selection after each render (rows are recreated each load)
+    bindPageSelection();
 }
+
+/**
+ * Wire the "select all" header checkbox and per-row checkboxes.
+ * Connects the existing (previously inert) selection UI.
+ */
+function bindPageSelection() {
+    const selectAll = document.getElementById('selectAllPages');
+    const rowCheckboxes = document.querySelectorAll('.page-checkbox');
+
+    if (selectAll) {
+        // Reset header state on each render
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+
+        selectAll.onchange = function () {
+            document.querySelectorAll('.page-checkbox').forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+        };
+    }
+
+    // Keep the header checkbox state in sync with individual rows
+    rowCheckboxes.forEach(cb => {
+        cb.onchange = function () {
+            const all = document.querySelectorAll('.page-checkbox');
+            const checked = document.querySelectorAll('.page-checkbox:checked');
+            if (selectAll) {
+                selectAll.checked = all.length > 0 && checked.length === all.length;
+                selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+            }
+        };
+    });
+}
+
+/**
+ * Get the IDs of all currently selected pages.
+ * Exposed for reuse by the audit toolbar (existing run_pages endpoint).
+ */
+function getSelectedPageIds() {
+    return Array.from(document.querySelectorAll('.page-checkbox:checked'))
+        .map(cb => parseInt(cb.getAttribute('data-page-id')))
+        .filter(id => !isNaN(id));
+}
+window.getSelectedPageIds = getSelectedPageIds;
 
 /**
  * Render pagination
@@ -382,7 +429,9 @@ function showPagesError(message) {
 }
 
 /**
- * View page details - opens detail drawer with all audit results
+ * View page details - opens detail drawer with all audit results.
+ * Also fetches history, retry history, and manual overrides from the
+ * existing pages endpoint (action=page_detail) and renders them.
  */
 function viewPageDetails(pageId) {
     const page = (window.currentPages || []).find(p => String(p.id) === String(pageId));
@@ -392,7 +441,120 @@ function viewPageDetails(pageId) {
         return;
     }
 
+    // Render immediately with the data we already have (audit results),
+    // then enrich with history/logs/overrides once fetched.
     renderPageDetailDrawer(page);
+
+    fetch(`/routes/pages.php?action=page_detail&page_id=${encodeURIComponent(pageId)}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.success) {
+                renderPageExtraDetails(data);
+            } else {
+                renderPageExtraDetails({ history: [], retry_history: [], overrides: [] });
+            }
+        })
+        .catch(() => {
+            renderPageExtraDetails({ history: [], retry_history: [], overrides: [] });
+        });
+}
+
+/**
+ * Render the History / Retry History / Manual Overrides sections
+ * into the already-open detail drawer.
+ */
+function renderPageExtraDetails(detail) {
+    const container = document.getElementById('pageDetailExtra');
+    if (!container) return;
+
+    const history = detail.history || [];
+    const retryHistory = detail.retry_history || [];
+    const overrides = detail.overrides || [];
+
+    let html = '';
+
+    // ── Audit History ──
+    html += '<div class="border-t border-gray-200 pt-4">';
+    html += '<h4 class="text-sm font-semibold text-gray-800 mb-3"><i class="bi bi-clock-history mr-1"></i>Audit History</h4>';
+    if (history.length === 0) {
+        html += '<p class="text-xs text-gray-400">No status changes recorded yet.</p>';
+    } else {
+        html += '<div class="space-y-2">';
+        history.forEach(h => {
+            const prev = h.previous_status || '—';
+            const next = h.new_status || '—';
+            const when = h.changed_at ? formatDate(h.changed_at) : '';
+            const mod = (h.module_name || '').replace(/_/g, ' ');
+            html += `<div class="text-xs bg-gray-50 border border-gray-100 rounded px-3 py-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-medium text-gray-700">${escapeHtml(mod)}</span>
+                    <span class="text-gray-400">${escapeHtml(when)}</span>
+                </div>
+                <div class="mt-1 text-gray-600">
+                    <span class="text-gray-400">${escapeHtml(prev)}</span>
+                    <i class="bi bi-arrow-right mx-1"></i>
+                    <span class="font-medium">${escapeHtml(next)}</span>
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+    }
+    html += '</div>';
+
+    // ── Retry History / Error Logs ──
+    html += '<div class="border-t border-gray-200 pt-4">';
+    html += '<h4 class="text-sm font-semibold text-gray-800 mb-3"><i class="bi bi-arrow-repeat mr-1"></i>Retry History & Errors</h4>';
+    if (retryHistory.length === 0) {
+        html += '<p class="text-xs text-gray-400">No retries or errors recorded.</p>';
+    } else {
+        html += '<div class="space-y-2">';
+        retryHistory.forEach(r => {
+            const mod = (r.module_name || '').replace(/_/g, ' ');
+            const status = r.status || '';
+            const attempts = (typeof r.retry_count !== 'undefined') ? r.retry_count : (r.attempts || 0);
+            const errType = r.error_type ? ` · ${escapeHtml(r.error_type)}` : '';
+            const errMsg = r.last_error || r.error_message || '';
+            html += `<div class="text-xs bg-red-50 border border-red-100 rounded px-3 py-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-medium text-gray-700">${escapeHtml(mod)}</span>
+                    <span class="text-gray-500">${escapeHtml(String(status))}${errType} · ${attempts} attempt(s)</span>
+                </div>
+                ${errMsg ? `<p class="mt-1 text-red-600 break-all">${escapeHtml(errMsg)}</p>` : ''}
+            </div>`;
+        });
+        html += '</div>';
+    }
+    html += '</div>';
+
+    // ── Manual Overrides ──
+    html += '<div class="border-t border-gray-200 pt-4">';
+    html += '<h4 class="text-sm font-semibold text-gray-800 mb-3"><i class="bi bi-pencil-square mr-1"></i>Manual Overrides</h4>';
+    if (overrides.length === 0) {
+        html += '<p class="text-xs text-gray-400">No manual overrides applied.</p>';
+    } else {
+        html += '<div class="space-y-2">';
+        overrides.forEach(o => {
+            const mod = (o.module_name || '').replace(/_/g, ' ');
+            const when = o.updated_at ? formatDate(o.updated_at) : '';
+            const by = o.user_name ? ` · ${escapeHtml(o.user_name)}` : '';
+            html += `<div class="text-xs bg-indigo-50 border border-indigo-100 rounded px-3 py-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-medium text-gray-700">${escapeHtml(mod)}</span>
+                    <span class="text-gray-400">${escapeHtml(when)}${by}</span>
+                </div>
+                <div class="mt-1 text-gray-600">
+                    <span class="text-gray-400">${escapeHtml(o.original_status || '—')}</span>
+                    <i class="bi bi-arrow-right mx-1"></i>
+                    <span class="font-medium">${escapeHtml(o.override_status || '—')}</span>
+                </div>
+                ${o.notes ? `<p class="mt-1 text-gray-500 italic">"${escapeHtml(o.notes)}"</p>` : ''}
+            </div>`;
+        });
+        html += '</div>';
+    }
+    html += '</div>';
+
+    container.innerHTML = html;
 }
 
 /**
@@ -607,10 +769,11 @@ function renderPageDetailDrawer(page) {
                     </div>
                 </div>
 
-                <!-- Future sections placeholders -->
-                <div class="border-t border-gray-200 pt-4">
-                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Audit History</h4>
-                    <p class="text-xs text-gray-400">History tracking available in audit management.</p>
+                <!-- History / Retry / Overrides (loaded dynamically) -->
+                <div id="pageDetailExtra" class="space-y-4">
+                    <div class="border-t border-gray-200 pt-4">
+                        <p class="text-xs text-gray-400"><i class="bi bi-arrow-repeat animate-spin mr-1"></i>Loading history, logs and overrides...</p>
+                    </div>
                 </div>
             </div>
         </div>

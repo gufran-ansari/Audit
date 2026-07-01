@@ -51,6 +51,10 @@ class PageController
             case 'view':
                 $this->viewPage();
                 break;
+
+            case 'page_detail':
+                $this->pageDetail();
+                break;
             
             case 'delete':
                 if ($method === 'POST') {
@@ -200,6 +204,64 @@ class PageController
         jsonResponse([
             'success' => true,
             'page' => $page
+        ]);
+    }
+
+    /**
+     * Aggregate detail for a single page: audit history, retry history,
+     * and manual overrides. Reuses existing services only — no new logic.
+     */
+    private function pageDetail(): void
+    {
+        $pageId = (int) input('page_id');
+
+        if (!$pageId) {
+            jsonResponse(['error' => 'Page ID is required'], 400);
+            return;
+        }
+
+        $repository = new PageRepository();
+        $page = $repository->findById($pageId);
+
+        if (!$page) {
+            jsonResponse(['error' => 'Page not found'], 404);
+            return;
+        }
+
+        // Audit history (page_audit_history). AuditHistoryService resolves its
+        // own PDO from the Database singleton when no global $pdo is present.
+        $history = [];
+        try {
+            $historyService = new \App\Services\AuditHistoryService();
+            $history = $historyService->getPageHistory($pageId, 100);
+        } catch (\Throwable $e) {
+            $history = [];
+        }
+
+        // Retry history (page_retry_tracking)
+        $retryHistory = [];
+        try {
+            $retryService = new \App\Services\RetryService();
+            $retryHistory = $retryService->getPageRetryHistory($pageId);
+        } catch (\Throwable $e) {
+            $retryHistory = [];
+        }
+
+        // Manual overrides (page_manual_overrides)
+        $overrides = [];
+        try {
+            $overrideService = new \App\Modules\Overrides\OverrideService();
+            $overrides = $overrideService->getPageOverrides($pageId);
+        } catch (\Throwable $e) {
+            $overrides = [];
+        }
+
+        jsonResponse([
+            'success' => true,
+            'page' => $page,
+            'history' => $history,
+            'retry_history' => $retryHistory,
+            'overrides' => $overrides,
         ]);
     }
 

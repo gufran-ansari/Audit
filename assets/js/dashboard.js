@@ -28,7 +28,7 @@
         injectGlobalUI();
         bindSearch();
         bindNotifications();
-        bindDarkMode();
+        // Theme toggle is handled globally by app.js (single persistent manager).
         startNotificationPolling();
     }
 
@@ -453,38 +453,6 @@
             toast.style.transition = 'opacity 0.3s';
             setTimeout(function () { toast.remove(); }, 300);
         }, 4000);
-    }
-
-    // ==========================================
-    // DARK MODE
-    // ==========================================
-    function bindDarkMode() {
-        var toggle = document.getElementById('themeToggle');
-        if (!toggle) return;
-
-        // Check saved preference
-        var saved = localStorage.getItem('theme');
-        if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-            document.body.classList.add('dark-mode');
-            updateThemeIcon(true);
-        }
-
-        toggle.addEventListener('click', function () {
-            var isDark = document.documentElement.classList.toggle('dark');
-            document.body.classList.toggle('dark-mode', isDark);
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            updateThemeIcon(isDark);
-        });
-    }
-
-    function updateThemeIcon(isDark) {
-        var toggle = document.getElementById('themeToggle');
-        if (!toggle) return;
-        var icon = toggle.querySelector('i');
-        if (icon) {
-            icon.className = isDark ? 'bi bi-sun text-xl' : 'bi bi-moon text-xl';
-        }
     }
 
     // ==========================================

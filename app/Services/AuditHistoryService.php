@@ -14,7 +14,9 @@ class AuditHistoryService
     public function __construct()
     {
         global $pdo;
-        $this->pdo = $pdo;
+        // Fall back to the Database singleton when no global $pdo is set
+        // (e.g. background job processing, route contexts that don't set it).
+        $this->pdo = $pdo ?? \Database\Database::getInstance()->getPdo();
     }
 
     /**

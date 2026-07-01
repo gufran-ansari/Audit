@@ -87,28 +87,10 @@ $sitemapStats = $sitemapService->getSitemapStats($project['id']);
                         <i class="bi bi-speedometer2 text-lg mr-3"></i>
                         <span>Dashboard</span>
                     </a>
-                    <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                        <i class="bi bi-file-earmark-plus text-lg mr-3"></i>
-                        <span>New Audit</span>
-                    </a>
-                    <a href="projects.php" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
+                    <a href="projects.php" class="nav-item active flex items-center px-4 py-3 text-sm font-medium rounded-lg">
                         <i class="bi bi-folder text-lg mr-3"></i>
                         <span>Projects</span>
                     </a>
-                    <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                        <i class="bi bi-clock-history text-lg mr-3"></i>
-                        <span>History</span>
-                    </a>
-                    <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                        <i class="bi bi-file-earmark-text text-lg mr-3"></i>
-                        <span>Reports</span>
-                    </a>
-                    <div class="pt-6 mt-6 border-t border-gray-200">
-                        <a href="#" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
-                            <i class="bi bi-gear text-lg mr-3"></i>
-                            <span>Settings</span>
-                        </a>
-                    </div>
                 </div>
             </nav>
             
@@ -148,10 +130,11 @@ $sitemapStats = $sitemapService->getSitemapStats($project['id']);
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button class="relative text-gray-500 hover:text-gray-700">
+                    <button data-notif-trigger class="relative text-gray-500 hover:text-gray-700" title="Notifications">
                         <i class="bi bi-bell text-xl"></i>
+                        <span data-notif-badge class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 rounded-full text-xs text-white flex items-center justify-center"></span>
                     </button>
-                    <button id="themeToggle" class="text-gray-500 hover:text-gray-700">
+                    <button id="themeToggle" class="text-gray-500 hover:text-gray-700" title="Toggle theme">
                         <i class="bi bi-moon text-xl"></i>
                     </button>
                 </div>
@@ -409,6 +392,10 @@ $sitemapStats = $sitemapService->getSitemapStats($project['id']);
                                     <i class="bi bi-play-circle mr-2"></i>
                                     Run Selected Audits
                                 </button>
+                                <button id="runSelectedPagesBtn" class="px-4 py-2 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-lg hover:bg-indigo-50 transition-colors">
+                                    <i class="bi bi-check2-square mr-2"></i>
+                                    Run Selected Pages
+                                </button>
                             </div>
 
                             <!-- Word Occurrence Keyword Input -->
@@ -634,6 +621,7 @@ $sitemapStats = $sitemapService->getSitemapStats($project['id']);
         const projectUuid = '<?= $project['uuid'] ?>';
     </script>
     <script src="assets/js/app.js"></script>
+    <script src="assets/js/dashboard.js"></script>
     <script src="assets/js/project-sitemaps.js"></script>
     <script src="assets/js/project-pages.js"></script>
     <script src="assets/js/project-audits.js"></script>
