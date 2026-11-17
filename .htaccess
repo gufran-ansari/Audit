@@ -45,6 +45,11 @@ RewriteRule ^report/([a-z0-9-]+)/export/?$ routes/report-export.php?slug=$1 [L,Q
 RewriteRule ^report/([a-z0-9-]+)/?$ report.php?slug=$1 [L,QSA]
 
 # ==============================================
+# API ROUTES (authenticated)
+# ==============================================
+RewriteRule ^api/(.*)$ api.php?route=$1 [L,QSA]
+
+# ==============================================
 # PERFORMANCE: Compression & Caching
 # ==============================================
 <IfModule mod_deflate.c>

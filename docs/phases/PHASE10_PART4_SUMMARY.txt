@@ -24,7 +24,7 @@ BUGS FIXED:
    - FIX: Strip 'id' key before JSON encoding for public page
 
 4. SECURITY: API login blocked by overly strict isAjax() check
-   - routes/auth.php api_login action required X-Requested-With header
+   - Legacy API login action required X-Requested-With header
    - Legitimate JSON API calls (fetch, curl) would fail
    - FIX: Removed isAjax() requirement, keep POST-only check
 

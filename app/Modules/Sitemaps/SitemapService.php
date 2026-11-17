@@ -3,6 +3,7 @@
 namespace App\Modules\Sitemaps;
 
 use App\Modules\Projects\ProjectService;
+use App\Services\SecureUrlFetcher;
 
 /**
  * Sitemap Service
@@ -14,6 +15,7 @@ class SitemapService
     private $repository;
     private $validator;
     private $projectService;
+    private SecureUrlFetcher $fetcher;
 
     // Common sitemap locations to check
     private $commonLocations = [
@@ -28,6 +30,13 @@ class SitemapService
         $this->repository = new SitemapRepository();
         $this->validator = new SitemapValidator();
         $this->projectService = new ProjectService();
+        $this->fetcher = new SecureUrlFetcher(
+            timeout: 30,
+            connectTimeout: 10,
+            maxRedirects: 5,
+            userAgent: 'AuditWithGufran/1.0 (SEO Audit Bot)',
+            maxContentLength: 5 * 1024 * 1024
+        );
     }
 
     /**
@@ -263,18 +272,8 @@ class SitemapService
      */
     private function urlExists(string $url): bool
     {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_NOBODY, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'AuditWithGufran/1.0');
-        
-        curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        return $httpCode >= 200 && $httpCode < 400;
+        $result = $this->fetcher->fetch($url, true); // headOnly = true
+        return $result['success'] && $result['http_code'] >= 200 && $result['http_code'] < 400;
     }
 
     /**
@@ -282,22 +281,13 @@ class SitemapService
      */
     private function fetchUrl(string $url): string|false
     {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'AuditWithGufran/1.0');
-        
-        $content = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $result = $this->fetcher->fetch($url);
 
-        if ($httpCode >= 200 && $httpCode < 400 && $content !== false) {
-            return $content;
+        if (!$result['success']) {
+            return false;
         }
 
-        return false;
+        return $result['html'];
     }
 
     /**

@@ -86,6 +86,10 @@ class AuthService {
         
         // Destroy session
         session_destroy();
+
+        // Start a fresh anonymous session so post-logout flash messages persist
+        session_start();
+        session_regenerate_id(true);
         
         return true;
     }

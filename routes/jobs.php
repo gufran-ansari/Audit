@@ -16,22 +16,30 @@
 
 require __DIR__ . '/../app/bootstrap.php';
 
-use App\Middleware\AuthMiddleware;
+use App\Middleware\ApiAuthMiddleware;
 use App\Services\AuthService;
 use App\Services\JobService;
 use App\Services\ModuleRegistry;
 use App\Jobs\JobProcessor;
 use App\Modules\WordOccurrenceAudit\WordOccurrenceValidator;
 
-// Auth required for all actions except 'process' (which may be called by cron)
+// Check if this is a cron request (no HTTP referer, specific user agent, or CLI)
+// Cron bypasses HTTP entirely by calling JobProcessor directly
+$isApiRequest = strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') === 0 || strpos($_SERVER['REQUEST_URI'] ?? '', '/api?') !== false;
+$isCronRequest = php_sapi_name() === 'cli' || 
+    (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'cron') !== false) ||
+    (isset($_SERVER['HTTP_X_CRON']) && $_SERVER['HTTP_X_CRON'] === '1');
+
+// Use new ApiAuthMiddleware for consistent API authentication
+$apiAuth = new ApiAuthMiddleware([
+    'auth' => true,
+    'csrf' => !$isCronRequest, // Disable CSRF for cron requests
+    'api' => $isApiRequest
+]);
+$apiAuth->handle();
+
 $action = input('action', 'list');
 $method = isMethod('POST') ? 'POST' : 'GET';
-
-// The process action can optionally run without auth (for cron)
-if ($action !== 'process') {
-    $auth = new AuthMiddleware();
-    $auth->handle();
-}
 
 $jobService = new JobService();
 
@@ -41,6 +49,10 @@ switch ($action) {
         break;
 
     case 'process':
+        // Require POST for process action (mutates job queue state)
+        if ($method !== 'POST') {
+            jsonResponse(['error' => 'Method not allowed. Use POST.'], 405);
+        }
         handleProcess();
         break;
 

@@ -9,6 +9,7 @@
 require __DIR__ . '/app/bootstrap.php';
 
 use App\Middleware\RoleMiddleware;
+use App\Middleware\CsrfMiddleware;
 use App\Services\AuthService;
 
 // Protect this route — super admin only (matches SettingsController gating)
@@ -17,6 +18,9 @@ $role->superAdmin();
 
 $authService = new AuthService();
 $currentUser = $authService->user();
+
+// Generate CSRF token for AJAX requests
+$csrfToken = CsrfMiddleware::getToken() ?: CsrfMiddleware::generateToken();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,6 +28,7 @@ $currentUser = $authService->user();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken) ?>">
     <title>Settings - Audit withGufran</title>
 
     <!-- Tailwind CSS -->
@@ -92,7 +97,7 @@ $currentUser = $authService->user();
                         <p class="text-sm font-semibold text-gray-800 truncate"><?= htmlspecialchars($currentUser['name']) ?></p>
                         <p class="text-xs text-gray-500 truncate"><?= htmlspecialchars(ucfirst($currentUser['role'])) ?></p>
                     </div>
-                    <a href="/routes/auth.php?action=logout" class="text-gray-400 hover:text-gray-600" title="Logout">
+                    <a href="/login.php?action=logout" class="text-gray-400 hover:text-gray-600" title="Logout">
                         <i class="bi bi-box-arrow-right"></i>
                     </a>
                 </div>

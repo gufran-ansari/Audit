@@ -4,6 +4,7 @@ namespace App\Modules\Pages;
 
 use App\Modules\Sitemaps\SitemapService;
 use App\Modules\Sitemaps\SitemapRepository;
+use App\Services\SecureUrlFetcher;
 
 /**
  * Page Service
@@ -16,6 +17,7 @@ class PageService
     private $validator;
     private $sitemapService;
     private $sitemapRepository;
+    private SecureUrlFetcher $fetcher;
 
     // Memory limit for XML processing (in bytes)
     private $memoryLimit = 50 * 1024 * 1024; // 50MB
@@ -26,6 +28,13 @@ class PageService
         $this->validator = new PageValidator();
         $this->sitemapService = new SitemapService();
         $this->sitemapRepository = new SitemapRepository();
+        $this->fetcher = new SecureUrlFetcher(
+            timeout: 60,
+            connectTimeout: 10,
+            maxRedirects: 5,
+            userAgent: 'AuditWithGufran/1.0 (SEO Audit Bot)',
+            maxContentLength: 5 * 1024 * 1024
+        );
     }
 
     /**
@@ -411,21 +420,13 @@ class PageService
      */
     private function fetchUrl(string $url): string|false
     {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'AuditWithGufran/1.0');
-        
-        $content = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $result = $this->fetcher->fetch($url);
 
-        if ($httpCode >= 200 && $httpCode < 400 && $content !== false) {
-            return $content;
+        if (!$result['success']) {
+            logMessage("Failed to fetch URL $url: " . $result['error'], 'warning');
+            return false;
         }
 
-        return false;
+        return $result['html'];
     }
 }

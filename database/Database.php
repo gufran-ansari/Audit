@@ -36,10 +36,20 @@ class Database {
                 $config['options']
             );
             
-        } catch (PDOException $e) {
-            error_log('Database Connection Error: ' . $e->getMessage());
-            throw new \Exception('Database connection failed. Please check your configuration.');
-        }
+        } // catch (PDOException $e) {
+        //     error_log('Database Connection Error: ' . $e->getMessage());
+        //     throw new \Exception('Database connection failed. Please check your configuration.');
+        // }
+        catch (PDOException $e) {
+        die(
+        '<pre>' .
+        "PDO Error:\n" .
+        $e->getMessage() .
+        "\n\nDSN:\n" .
+        $dsn .
+        '</pre>'
+    );
+}
     }
     
     /**

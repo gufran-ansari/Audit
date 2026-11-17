@@ -98,6 +98,6 @@ If cron is not available, the job processor can be triggered via the dashboard.
 
 **CSRF Token Mismatch**: Ensure session cookies are working. Check `SESSION_SECURE` matches your HTTPS status.
 
-**Jobs not processing**: Verify cron is set up, or manually trigger via `routes/jobs.php?action=process`.
+**Jobs not processing**: Verify cron is set up, or manually trigger via `POST /api/jobs` with `action=process` and CSRF token.
 
 **Permission denied on storage/**: Run `chmod -R 755 storage/`.

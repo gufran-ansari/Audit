@@ -100,7 +100,7 @@ async function loadSitemapFilter() {
     if (!sitemapFilter) return;
     
     try {
-        const response = await fetch(`/routes/sitemaps.php?action=list&project_id=${projectId}`);
+        const response = await fetch(`/api/sitemaps?action=list&project_id=${projectId}`);
         const data = await response.json();
         
         if (data.success && data.sitemaps) {
@@ -150,7 +150,7 @@ async function loadPages() {
             params.append('module_status', currentFilters.word_result === 'found' ? 'PASS' : 'FAIL');
         }
         
-        const response = await fetch(`/routes/pages.php?${params}`);
+        const response = await fetch(`/api/pages?${params}`);
         const data = await response.json();
         
         if (data.success && data.pages) {
@@ -341,7 +341,7 @@ async function loadPageStats() {
     if (!pageStatsContainer) return;
     
     try {
-        const response = await fetch(`/routes/pages.php?action=stats&project_id=${projectId}`);
+        const response = await fetch(`/api/pages?action=stats&project_id=${projectId}`);
         const data = await response.json();
         
         if (data.success && data.stats) {
@@ -460,7 +460,7 @@ function viewPageDetails(pageId) {
     // then enrich with history/logs/overrides once fetched.
     renderPageDetailDrawer(page);
 
-    fetch(`/routes/pages.php?action=page_detail&page_id=${encodeURIComponent(pageId)}`)
+    fetch(`/api/pages?action=page_detail&page_id=${encodeURIComponent(pageId)}`)
         .then(r => r.json())
         .then(data => {
             if (data && data.success) {

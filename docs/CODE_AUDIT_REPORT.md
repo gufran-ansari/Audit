@@ -52,7 +52,7 @@ The application has a solid backend architecture with properly wired API endpoin
 | Sitemaps | ✓ routes/sitemaps.php | ✓ project-sitemaps.js | ✓ Working |
 | Audit Results | ✓ routes/h1_audit.php etc | ✓ project-audits.js | ✓ Working |
 | Reports | ✓ routes/reports.php | ✓ report.js | ✓ Working |
-| Jobs | ✓ routes/jobs.php | ✓ project-audits.js | ✓ Working |
+| Jobs | ✓ /api/jobs | ✓ project-audits.js | ✓ Working |
 | Overrides | ✓ routes/overrides.php | 🔴 overrides.js NOT loaded | ✗ Not wired |
 | Settings | ✓ routes/settings.php | 🔴 settings.js NOT loaded | ✗ Not wired |
 | Dashboard overview | ✓ routes/dashboard.php | 🔴 dashboard.js NOT loaded | ✗ Not wired |
@@ -79,7 +79,7 @@ The application has a solid backend architecture with properly wired API endpoin
 | Route | Wired | Notes |
 |-------|-------|-------|
 | `/login.php` | ✓ | Auth controller |
-| `/routes/auth.php` | ✓ | Login/logout API |
+| `/login.php?action=logout` | ✓ | Logout through public auth endpoint |
 | `/dashboard.php` | ⚠️ | Page exists but data is static |
 | `/projects.php` | ✓ | Fully dynamic |
 | `/project.php?uuid=X` | ✓ | Fully dynamic |

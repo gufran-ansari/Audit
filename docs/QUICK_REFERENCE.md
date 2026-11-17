@@ -74,9 +74,9 @@ Password: admin123
 
 ### Authentication
 ```
-POST /routes/auth.php?action=login
-GET  /routes/auth.php?action=logout
-POST /routes/auth.php?action=api_login
+GET  /login.php
+POST /login.php
+GET  /login.php?action=logout
 ```
 
 ### Projects

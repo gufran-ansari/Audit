@@ -12,7 +12,7 @@
 (function () {
     'use strict';
 
-    const API_URL = 'routes/overrides.php';
+    const API_URL = 'api/overrides';
 
     const OVERRIDE_STATUSES = [
         { key: 'ignored', label: 'Ignored', color: '#6b7280', bg: '#f3f4f6', icon: 'bi-eye-slash' },

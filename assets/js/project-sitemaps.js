@@ -49,7 +49,7 @@ function initializeEventListeners() {
  */
 async function loadSitemaps() {
     try {
-        const response = await fetch(`/routes/sitemaps.php?action=list&project_id=${projectId}`);
+        const response = await fetch(`/api/sitemaps?action=list&project_id=${projectId}`);
         const data = await response.json();
         
         if (data.success && data.sitemaps) {
@@ -154,7 +154,7 @@ async function discoverSitemaps() {
         formData.append('action', 'discover');
         formData.append('project_id', projectId);
         
-        const response = await fetch('/routes/sitemaps.php', {
+        const response = await fetch('/api/sitemaps', {
             method: 'POST',
             body: formData
         });
@@ -222,12 +222,11 @@ async function handleAddSitemap(e) {
     addSitemapSubmitBtn.disabled = true;
     addSitemapSubmitBtn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-2"></i>Adding...';
     
-    const formData = new FormData(addSitemapForm);
-    formData.append('action', 'add');
-    formData.append('project_id', projectId);
-    
-    try {
-        const response = await fetch('/routes/sitemaps.php', {
+const formData = new FormData(addSitemapForm);
+        formData.append('action', 'add');
+        formData.append('project_id', projectId);
+        
+        const response = await fetch('/api/sitemaps', {
             method: 'POST',
             body: formData
         });
@@ -274,7 +273,7 @@ async function revalidateSitemap(sitemapId) {
         formData.append('action', 'revalidate');
         formData.append('sitemap_id', sitemapId);
         
-        const response = await fetch('/routes/sitemaps.php', {
+        const response = await fetch('/api/sitemaps', {
             method: 'POST',
             body: formData
         });
@@ -307,7 +306,7 @@ async function deleteSitemap(sitemapId) {
         formData.append('action', 'delete');
         formData.append('sitemap_id', sitemapId);
         
-        const response = await fetch('/routes/sitemaps.php', {
+        const response = await fetch('/api/sitemaps', {
             method: 'POST',
             body: formData
         });
@@ -342,7 +341,7 @@ async function importUrls(sitemapId) {
         formData.append('action', 'import');
         formData.append('sitemap_id', sitemapId);
         
-        const response = await fetch('/routes/pages.php', {
+        const response = await fetch('/api/pages', {
             method: 'POST',
             body: formData
         });

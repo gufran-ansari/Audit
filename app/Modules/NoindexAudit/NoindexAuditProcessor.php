@@ -2,6 +2,8 @@
 
 namespace App\Modules\NoindexAudit;
 
+use App\Services\SecureUrlFetcher;
+
 /**
  * Noindex Audit Processor
  * 
@@ -9,19 +11,15 @@ namespace App\Modules\NoindexAudit;
  */
 class NoindexAuditProcessor
 {
-    private const TIMEOUT = 30; // seconds
-    private const MAX_REDIRECTS = 5;
-    private const USER_AGENT = 'AuditWithGufran/1.0 (SEO Audit Bot)';
-
     /**
      * Fetch and process URL for noindex audit
      */
     public function process(string $url): array
     {
-        // Fetch HTML
-        $html = $this->fetchUrl($url);
+        $fetcher = new SecureUrlFetcher();
+        $result = $fetcher->fetch($url);
 
-        if ($html === false) {
+        if (!$result['success']) {
             return [
                 'status' => 'ERROR',
                 'robots_content' => null,
@@ -29,11 +27,11 @@ class NoindexAuditProcessor
                 'follow_status' => 'error',
                 'has_noindex' => null,
                 'has_nofollow' => null,
-                'error' => 'Failed to fetch URL'
+                'error' => $result['error'] ?? 'Failed to fetch URL'
             ];
         }
 
-        return $this->processHtml($html);
+        return $this->processHtml($result['html']);
     }
 
     /**
@@ -101,34 +99,6 @@ class NoindexAuditProcessor
                 'error' => $e->getMessage()
             ];
         }
-    }
-
-    /**
-     * Fetch URL content
-     */
-    private function fetchUrl(string $url): string|false
-    {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_MAXREDIRS, self::MAX_REDIRECTS);
-        curl_setopt($ch, CURLOPT_TIMEOUT, self::TIMEOUT);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, self::USER_AGENT);
-        curl_setopt($ch, CURLOPT_ENCODING, ''); // Accept all encodings
-        
-        $content = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($content === false || $httpCode < 200 || $httpCode >= 400) {
-            logMessage("Failed to fetch URL $url: HTTP $httpCode, Error: $error", 'warning');
-            return false;
-        }
-
-        return $content;
     }
 
     /**

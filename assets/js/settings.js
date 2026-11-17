@@ -12,7 +12,7 @@
 (function () {
     'use strict';
 
-    const API = 'routes/settings.php';
+    const API = 'api/settings';
 
     const CATEGORIES = {
         general: { label: 'General', icon: 'bi-gear', description: 'Application name, timezone, and display preferences' },

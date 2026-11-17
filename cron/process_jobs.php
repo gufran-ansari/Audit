@@ -9,7 +9,7 @@
  *   * * * * * php /path/to/Audit/cron/process_jobs.php >> /path/to/Audit/storage/logs/cron.log 2>&1
  *
  * On shared hosting without cron, the frontend polls
- * /routes/jobs.php?action=process to drive processing.
+ * `POST /api/jobs` with `action=process` and CSRF token to drive processing.
  */
 
 // Set execution limits

@@ -12,7 +12,7 @@
 (function () {
     'use strict';
 
-    const API = 'routes/dashboard.php';
+    const API = 'api/dashboard';
     let notificationPollInterval = null;
 
     // --- Public API ---

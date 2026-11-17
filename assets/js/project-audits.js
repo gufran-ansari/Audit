@@ -47,7 +47,7 @@ async function loadWordSearchHistory() {
     if (!container || typeof projectId === 'undefined') return;
     
     try {
-        const response = await fetch(`/routes/word_occurrence_audit.php?action=keywords&project_id=${projectId}`);
+        const response = await fetch(`/api/word_occurrence_audit?action=keywords&project_id=${projectId}`);
         const data = await response.json();
         
         if (data.success && data.keywords && data.keywords.length > 0) {
@@ -249,7 +249,7 @@ async function runSelectedPages() {
             formData.append('keyword', wordKeyword);
         }
 
-        const response = await fetch('/routes/audit_engine.php', { method: 'POST', body: formData });
+        const response = await fetch('/api/audit_engine', { method: 'POST', body: formData });
         const data = await response.json();
 
         if (!data.success) {
@@ -282,25 +282,25 @@ async function runProjectAudit(type, extraParams = {}) {
     
     switch(type) {
         case 'h1':
-            endpoint = '/routes/h1_audit.php';
+            endpoint = '/api/h1_audit';
             break;
         case 'meta':
-            endpoint = '/routes/meta_audit.php';
+            endpoint = '/api/meta_audit';
             break;
         case 'noindex':
-            endpoint = '/routes/noindex_audit.php';
+            endpoint = '/api/noindex_audit';
             break;
         case 'faq':
-            endpoint = '/routes/faq_schema_audit.php';
+            endpoint = '/api/faq_schema_audit';
             break;
         case 'lorem':
-            endpoint = '/routes/lorem_audit.php';
+            endpoint = '/api/lorem_audit';
             break;
         case 'staging':
-            endpoint = '/routes/staging_audit.php';
+            endpoint = '/api/staging_audit';
             break;
         case 'word':
-            endpoint = '/routes/word_occurrence_audit.php';
+            endpoint = '/api/word_occurrence_audit';
             break;
         default:
             throw new Error('Invalid audit type: ' + type);
@@ -337,25 +337,25 @@ async function runPageAudit(pageId, type, extraParams = {}) {
     
     switch(type) {
         case 'h1':
-            endpoint = '/routes/h1_audit.php';
+            endpoint = '/api/h1_audit';
             break;
         case 'meta':
-            endpoint = '/routes/meta_audit.php';
+            endpoint = '/api/meta_audit';
             break;
         case 'noindex':
-            endpoint = '/routes/noindex_audit.php';
+            endpoint = '/api/noindex_audit';
             break;
         case 'faq':
-            endpoint = '/routes/faq_schema_audit.php';
+            endpoint = '/api/faq_schema_audit';
             break;
         case 'lorem':
-            endpoint = '/routes/lorem_audit.php';
+            endpoint = '/api/lorem_audit';
             break;
         case 'staging':
-            endpoint = '/routes/staging_audit.php';
+            endpoint = '/api/staging_audit';
             break;
         case 'word':
-            endpoint = '/routes/word_occurrence_audit.php';
+            endpoint = '/api/word_occurrence_audit';
             break;
         default:
             throw new Error('Invalid audit type: ' + type);
@@ -496,7 +496,7 @@ async function loadAuditSummary() {
     if (typeof projectId === 'undefined') return;
     
     try {
-        const response = await fetch(`/routes/audit_engine.php?action=summary&project_id=${projectId}`);
+        const response = await fetch(`/api/audit_engine?action=summary&project_id=${projectId}`);
         const data = await response.json();
         
         if (!data.success || !data.summary) return;
@@ -556,10 +556,18 @@ async function submitBackgroundJob(moduleKeys, wordKeyword) {
     if (moduleKeys.includes('word') && wordKeyword) {
         formData.append('keyword', wordKeyword);
     }
-    const response = await fetch('/routes/jobs.php', { method: 'POST', body: formData });
+    const response = await fetch('/api/jobs', { method: 'POST', body: formData });
     const data = await response.json();
     if (!data.success) throw new Error(data.error || 'Failed to create job');
     return data.job;
+}
+
+/**
+ * Get CSRF token from meta tag
+ */
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
 }
 
 /**
@@ -567,7 +575,16 @@ async function submitBackgroundJob(moduleKeys, wordKeyword) {
  */
 async function triggerJobProcessing() {
     try {
-        const response = await fetch('/routes/jobs.php?action=process');
+        const csrfToken = getCsrfToken();
+        const formData = new FormData();
+        formData.append('action', 'process');
+        if (csrfToken) {
+            formData.append('csrf_token', csrfToken);
+        }
+        const response = await fetch('/api/jobs', {
+            method: 'POST',
+            body: formData
+        });
         return await response.json();
     } catch (e) {
         return null;
@@ -583,7 +600,7 @@ async function loadJobStatusPanel() {
     if (!panel) return;
     
     try {
-        const response = await fetch(`/routes/jobs.php?action=list&project_id=${projectId}`);
+        const response = await fetch(`/api/jobs?action=list&project_id=${projectId}`);
         const data = await response.json();
         if (!data.success) return;
         
@@ -656,7 +673,7 @@ function stopJobPolling() {
 
 async function pauseJob(jobId) {
     const fd = new FormData(); fd.append('action', 'pause'); fd.append('job_id', jobId);
-    const r = await fetch('/routes/jobs.php', { method: 'POST', body: fd });
+    const r = await fetch('/api/jobs', { method: 'POST', body: fd });
     const d = await r.json();
     if (d.success) { showNotification('Job paused', 'info'); loadJobStatusPanel(); }
     else showNotification(d.message || 'Could not pause', 'error');
@@ -665,7 +682,7 @@ async function pauseJob(jobId) {
 async function cancelJob(jobId) {
     if (!confirm('Cancel this audit job?')) return;
     const fd = new FormData(); fd.append('action', 'cancel'); fd.append('job_id', jobId);
-    const r = await fetch('/routes/jobs.php', { method: 'POST', body: fd });
+    const r = await fetch('/api/jobs', { method: 'POST', body: fd });
     const d = await r.json();
     if (d.success) { showNotification('Job cancelled', 'info'); loadJobStatusPanel(); }
     else showNotification(d.message || 'Could not cancel', 'error');
@@ -678,7 +695,7 @@ async function resumeJob(jobId) {
     const fd = new FormData();
     fd.append('action', 'resume');
     fd.append('job_id', jobId);
-    const r = await fetch('/routes/jobs.php', { method: 'POST', body: fd });
+    const r = await fetch('/api/jobs', { method: 'POST', body: fd });
     const d = await r.json();
     if (d.success) {
         showNotification('Job resumed', 'success');
@@ -696,7 +713,7 @@ async function resumeAllJobs() {
     const fd = new FormData();
     fd.append('action', 'resume_all');
     fd.append('project_id', projectId);
-    const r = await fetch('/routes/jobs.php', { method: 'POST', body: fd });
+    const r = await fetch('/api/jobs', { method: 'POST', body: fd });
     const d = await r.json();
     if (d.success) {
         showNotification(`${d.resumed_count} job(s) resumed`, 'success');
@@ -739,7 +756,7 @@ async function retryFailedPages() {
         if (kw) fd.append('keyword', kw);
     }
 
-    const r = await fetch('/routes/jobs.php', { method: 'POST', body: fd });
+    const r = await fetch('/api/jobs', { method: 'POST', body: fd });
     const d = await r.json();
 
     if (d.success) {
@@ -765,7 +782,7 @@ async function loadRetryInfo() {
     if (!retryPanel) return;
 
     try {
-        const response = await fetch(`/routes/jobs.php?action=recoverable&project_id=${projectId}`);
+        const response = await fetch(`/api/jobs?action=recoverable&project_id=${projectId}`);
         const data = await response.json();
         if (!data.success) return;
 
@@ -820,7 +837,7 @@ async function loadHealthPanel() {
     if (!panel) return;
 
     try {
-        const response = await fetch(`/routes/health.php?action=project&project_id=${projectId}`);
+        const response = await fetch(`/api/health?action=project&project_id=${projectId}`);
         const data = await response.json();
         if (!data.success) return;
 

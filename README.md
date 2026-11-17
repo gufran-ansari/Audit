@@ -16,29 +16,22 @@ A production-ready SEO audit platform. Crawl sitemaps, audit pages across 7 modu
 cp .env.example .env
 # Edit .env with your database credentials and APP_URL
 
-# 2. Create database
-mysql -u root -p < database/migrations.sql
+# 2. Create database and import unified schema
+#    - Create a database in MySQL/MariaDB (e.g., via phpMyAdmin)
+#    - Select the database in phpMyAdmin
+#    - Import database/install.sql
+#    OR via command line:
+# mysql -u root -p < database/install.sql
 
-# 3. Run additional migrations (in order)
-mysql -u root -p audit_withgufran < database/migrations_phase4_part3.sql
-mysql -u root -p audit_withgufran < database/migrations_phase5_part2.sql
-mysql -u root -p audit_withgufran < database/migrations_phase6_part1.sql
-mysql -u root -p audit_withgufran < database/migrations_phase6_part2.sql
-mysql -u root -p audit_withgufran < database/migrations_phase7_part1.sql
-mysql -u root -p audit_withgufran < database/migrations_phase8_part1.sql
-mysql -u root -p audit_withgufran < database/migrations_phase8_part2.sql
-mysql -u root -p audit_withgufran < database/migrations_phase8_part3.sql
-mysql -u root -p audit_withgufran < database/migrations_phase9_part1.sql
-
-# 4. Set permissions
+# 3. Set permissions
 chmod 755 storage/cache storage/logs storage/rate_limits
 
-# 5. Set up cron (if available)
+# 4. Set up cron (if available)
 # Add to crontab:
 # * * * * * php /path/to/Audit/cron/process_jobs.php >> /path/to/Audit/storage/logs/cron.log 2>&1
 # 0 3 * * * php /path/to/Audit/cron/maintenance.php >> /path/to/Audit/storage/logs/maintenance.log 2>&1
 
-# 6. Login
+# 5. Login
 # Default: admin@auditwithgufran.com / admin123
 # CHANGE THIS IMMEDIATELY after first login.
 ```
@@ -126,7 +119,7 @@ Key environment variables:
 | Every minute | `cron/process_jobs.php` | Process audit job queue |
 | Daily at 3am | `cron/maintenance.php` | Cache cleanup, log rotation |
 
-On shared hosting without cron, jobs can be triggered via `routes/jobs.php?action=process`.
+On shared hosting without cron, jobs can be triggered via `POST /api/jobs` with `action=process` and CSRF token.
 
 ## Security
 
@@ -144,17 +137,17 @@ All admin endpoints require authentication. Public report endpoints require vali
 
 | Route | Auth | Purpose |
 |-------|------|---------|
-| `routes/projects.php` | Yes | Project CRUD |
-| `routes/pages.php` | Yes | URL management |
-| `routes/sitemaps.php` | Yes | Sitemap operations |
-| `routes/jobs.php` | Yes | Job management |
-| `routes/reports.php` | Yes | Report admin |
-| `routes/overrides.php` | Yes | Manual overrides |
-| `routes/settings.php` | Super Admin | System settings |
-| `routes/dashboard.php` | Yes | Dashboard data |
+| `/api/projects` | Yes | Project CRUD |
+| `/api/pages` | Yes | URL management |
+| `/api/sitemaps` | Yes | Sitemap operations |
+| `/api/jobs` | Yes | Job management |
+| `/api/reports` | Yes | Report admin |
+| `/api/overrides` | Yes | Manual overrides |
+| `/api/settings` | Super Admin | System settings |
+| `/api/dashboard` | Yes | Dashboard data |
 | `report.php` | No | Public report page |
-| `routes/report-api.php` | No | Paginated report data |
-| `routes/report-export.php` | No | CSV export |
+| `/api/reports` | No | Paginated report data |
+| `/api/reports` | No | CSV/PDF export |
 
 ## License
 

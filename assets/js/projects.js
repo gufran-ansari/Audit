@@ -95,7 +95,7 @@ async function loadProjects() {
             search: currentFilters.search
         });
         
-        const response = await fetch(`/routes/projects.php?${params}`);
+        const response = await fetch(`/api/projects?${params}`);
         const data = await response.json();
         
         if (data.success) {
@@ -310,7 +310,7 @@ async function handleCreateProject(e) {
     formData.append('action', 'create');
     
     try {
-        const response = await fetch('/routes/projects.php', {
+        const response = await fetch('/api/projects', {
             method: 'POST',
             body: formData
         });
@@ -415,7 +415,7 @@ async function archiveProject(projectId) {
         formData.append('action', 'archive');
         formData.append('project_id', projectId);
         
-        const response = await fetch('/routes/projects.php', {
+        const response = await fetch('/api/projects', {
             method: 'POST',
             body: formData
         });
@@ -442,7 +442,7 @@ async function restoreProject(projectId) {
         formData.append('action', 'restore');
         formData.append('project_id', projectId);
         
-        const response = await fetch('/routes/projects.php', {
+        const response = await fetch('/api/projects', {
             method: 'POST',
             body: formData
         });

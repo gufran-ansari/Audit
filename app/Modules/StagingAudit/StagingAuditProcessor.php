@@ -2,6 +2,8 @@
 
 namespace App\Modules\StagingAudit;
 
+use App\Services\SecureUrlFetcher;
+
 /**
  * Staging Audit Processor
  * 
@@ -9,9 +11,6 @@ namespace App\Modules\StagingAudit;
  */
 class StagingAuditProcessor
 {
-    private const TIMEOUT = 30; // seconds
-    private const MAX_REDIRECTS = 5;
-    private const USER_AGENT = 'AuditWithGufran/1.0 (SEO Audit Bot)';
     private const MAX_MATCHES = 50; // max matched URLs to store
 
     /**
@@ -54,20 +53,20 @@ class StagingAuditProcessor
      */
     public function process(string $url): array
     {
-        // Fetch HTML
-        $html = $this->fetchUrl($url);
+        $fetcher = new SecureUrlFetcher();
+        $result = $fetcher->fetch($url);
 
-        if ($html === false) {
+        if (!$result['success']) {
             return [
                 'status' => 'ERROR',
                 'staging_urls' => [],
                 'total_occurrences' => 0,
                 'source_locations' => [],
-                'error' => 'Failed to fetch URL'
+                'error' => $result['error'] ?? 'Failed to fetch URL'
             ];
         }
 
-        return $this->processHtml($html);
+        return $this->processHtml($result['html']);
     }
 
     /**
@@ -110,38 +109,10 @@ class StagingAuditProcessor
                 'error' => $e->getMessage()
             ];
         }
-    }
+}
 
     /**
-     * Fetch URL content
-     */
-    private function fetchUrl(string $url): string|false
-    {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_MAXREDIRS, self::MAX_REDIRECTS);
-        curl_setopt($ch, CURLOPT_TIMEOUT, self::TIMEOUT);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, self::USER_AGENT);
-        curl_setopt($ch, CURLOPT_ENCODING, '');
-
-        $content = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($content === false || $httpCode < 200 || $httpCode >= 400) {
-            logMessage("Failed to fetch URL $url: HTTP $httpCode, Error: $error", 'warning');
-            return false;
-        }
-
-        return $content;
-    }
-
-    /**
-     * Extract URLs from HTML source locations:
+     * Extract URLs from various source locations:
      * links, images, scripts, stylesheets, canonical
      * Returns array of ['url' => string, 'location' => string]
      */

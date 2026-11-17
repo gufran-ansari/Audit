@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Services\SecureUrlFetcher;
+
 /**
  * Page Fetch Service
  * 
@@ -17,12 +19,11 @@ namespace App\Services;
  *  - Memory-bounded LRU cache with auto-eviction
  *  - Metrics tracking for fetch performance
  *  - Deduplication guarantee (same URL never fetched twice per execution)
+ *  - SSRF protection with SSL verification
  */
 class PageFetchService
 {
-    private int $timeout;
-    private int $maxRedirects;
-    private string $userAgent;
+    private SecureUrlFetcher $fetcher;
 
     /**
      * In-memory cache of fetched pages for the current execution.
@@ -38,9 +39,13 @@ class PageFetchService
 
     public function __construct()
     {
-        $this->timeout = SettingsService::getFetchTimeout();
-        $this->maxRedirects = 5;
-        $this->userAgent = 'AuditWithGufran/1.0 (SEO Audit Bot)';
+        $this->fetcher = new SecureUrlFetcher(
+            timeout: SettingsService::getFetchTimeout(),
+            connectTimeout: 10,
+            maxRedirects: 5,
+            userAgent: 'AuditWithGufran/1.0 (SEO Audit Bot)',
+            maxContentLength: 5 * 1024 * 1024
+        );
         $this->maxCacheEntries = 50;
     }
 
@@ -56,62 +61,16 @@ class PageFetchService
             return $this->cache[$cacheKey];
         }
 
-        $startTime = microtime(true);
-
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_MAXREDIRS, $this->maxRedirects);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->userAgent);
-        curl_setopt($ch, CURLOPT_ENCODING, '');
-        // Limit download size to 5MB to prevent memory issues on shared hosting
-        curl_setopt($ch, CURLOPT_MAXFILESIZE, 5 * 1024 * 1024);
-
-        $content = curl_exec($ch);
-        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        $fetchTimeMs = (int) round((microtime(true) - $startTime) * 1000);
+        $result = $this->fetcher->fetch($url);
 
         $this->fetchCount++;
-        $this->totalFetchTimeMs += $fetchTimeMs;
-
-        if ($content === false || $httpCode < 200 || $httpCode >= 400) {
-            $errorMessage = $error !== '' ? $error : "HTTP {$httpCode}";
-
-            $response = [
-                'success' => false,
-                'html' => null,
-                'http_code' => $httpCode,
-                'final_url' => $finalUrl ?: $url,
-                'content_type' => $contentType,
-                'fetch_time_ms' => $fetchTimeMs,
-                'error' => "Failed to fetch URL: {$errorMessage}"
-            ];
-        } else {
-            $response = [
-                'success' => true,
-                'html' => $content,
-                'http_code' => $httpCode,
-                'final_url' => $finalUrl ?: $url,
-                'content_type' => $contentType,
-                'fetch_time_ms' => $fetchTimeMs,
-                'error' => null
-            ];
-        }
+        $this->totalFetchTimeMs += $result['fetch_time_ms'];
 
         if ($useCache) {
-            $this->storeInCache($cacheKey, $response);
+            $this->storeInCache($cacheKey, $result);
         }
 
-        return $response;
+        return $result;
     }
 
     /**
@@ -154,7 +113,13 @@ class PageFetchService
      */
     public function setTimeout(int $seconds): void
     {
-        $this->timeout = max(5, $seconds);
+        $this->fetcher = new SecureUrlFetcher(
+            timeout: max(5, $seconds),
+            connectTimeout: 10,
+            maxRedirects: 5,
+            userAgent: 'AuditWithGufran/1.0 (SEO Audit Bot)',
+            maxContentLength: 5 * 1024 * 1024
+        );
     }
 
     /**

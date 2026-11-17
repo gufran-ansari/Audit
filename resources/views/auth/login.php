@@ -53,11 +53,10 @@
             </div>
             <?php endif; ?>
             
-            <form method="POST" action="/routes/auth.php" id="loginForm">
+            <form method="POST" action="/login.php" id="loginForm">
                 
                 <!-- CSRF Token -->
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-                <input type="hidden" name="action" value="login">
                 
                 <!-- Email -->
                 <div class="mb-5">

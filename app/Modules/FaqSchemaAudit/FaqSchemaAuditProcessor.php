@@ -2,6 +2,8 @@
 
 namespace App\Modules\FaqSchemaAudit;
 
+use App\Services\SecureUrlFetcher;
+
 /**
  * FAQ Schema Audit Processor
  * 
@@ -9,19 +11,15 @@ namespace App\Modules\FaqSchemaAudit;
  */
 class FaqSchemaAuditProcessor
 {
-    private const TIMEOUT = 30; // seconds
-    private const MAX_REDIRECTS = 5;
-    private const USER_AGENT = 'AuditWithGufran/1.0 (SEO Audit Bot)';
-
     /**
      * Fetch and process URL for FAQ schema audit
      */
     public function process(string $url): array
     {
-        // Fetch HTML
-        $html = $this->fetchUrl($url);
+        $fetcher = new SecureUrlFetcher();
+        $result = $fetcher->fetch($url);
 
-        if ($html === false) {
+        if (!$result['success']) {
             return [
                 'status' => 'ERROR',
                 'has_faq_schema' => false,
@@ -30,11 +28,11 @@ class FaqSchemaAuditProcessor
                 'schema_count' => 0,
                 'question_count' => 0,
                 'schema_snippets' => [],
-                'error' => 'Failed to fetch URL'
+                'error' => $result['error'] ?? 'Failed to fetch URL'
             ];
         }
 
-        return $this->processHtml($html);
+        return $this->processHtml($result['html']);
     }
 
     /**
@@ -81,34 +79,6 @@ class FaqSchemaAuditProcessor
                 'error' => $e->getMessage()
             ];
         }
-    }
-
-    /**
-     * Fetch URL content
-     */
-    private function fetchUrl(string $url): string|false
-    {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_MAXREDIRS, self::MAX_REDIRECTS);
-        curl_setopt($ch, CURLOPT_TIMEOUT, self::TIMEOUT);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, self::USER_AGENT);
-        curl_setopt($ch, CURLOPT_ENCODING, ''); // Accept all encodings
-        
-        $content = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($content === false || $httpCode < 200 || $httpCode >= 400) {
-            logMessage("Failed to fetch URL $url: HTTP $httpCode, Error: $error", 'warning');
-            return false;
-        }
-
-        return $content;
     }
 
     /**

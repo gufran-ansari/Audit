@@ -122,7 +122,7 @@ $sitemapStats = $sitemapService->getSitemapStats($project['id']);
                         <p class="text-sm font-semibold text-gray-800 truncate"><?= htmlspecialchars($currentUser['name']) ?></p>
                         <p class="text-xs text-gray-500 truncate"><?= htmlspecialchars(ucfirst($currentUser['role'])) ?></p>
                     </div>
-                    <a href="/routes/auth.php?action=logout" class="text-gray-400 hover:text-gray-600" title="Logout">
+                    <a href="/login.php?action=logout" class="text-gray-400 hover:text-gray-600" title="Logout">
                         <i class="bi bi-box-arrow-right"></i>
                     </a>
                 </div>

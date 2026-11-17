@@ -244,9 +244,8 @@ Successfully built the complete backend foundation with PHP 8+, MySQL database, 
 - Error handling
 
 **Routes:**
-- `/login.php` - Login page (public)
+- `/login.php` - Login and logout endpoint (public)
 - `/dashboard.php` - Dashboard (protected)
-- `/routes/auth.php` - Auth endpoints
 - Future: `/projects.php`, `/report.php`
 
 ---
@@ -365,7 +364,7 @@ Password: admin123
 - resources/views/errors/403.php
 
 **Routes:**
-- routes/auth.php
+- login.php
 
 **Entry Points:**
 - login.php
@@ -444,19 +443,18 @@ Password: admin123
 
 ## 📝 API Endpoints
 
-### Authentication Routes (`/routes/auth.php`)
+### Authentication Routes (`/login.php`)
 
-**POST** `/routes/auth.php?action=login`
+**GET** `/login.php`
+- Show login form
+
+**POST** `/login.php`
 - Login with email/password
 - Returns: Redirect to dashboard
 
-**GET** `/routes/auth.php?action=logout`
+**GET** `/login.php?action=logout`
 - Logout current user
 - Returns: Redirect to login
-
-**POST** `/routes/auth.php?action=api_login`
-- AJAX login endpoint
-- Returns: JSON response
 
 ---
 

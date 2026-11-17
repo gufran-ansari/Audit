@@ -14,13 +14,18 @@
 
 require __DIR__ . '/../app/bootstrap.php';
 
-use App\Middleware\AuthMiddleware;
+use App\Middleware\ApiAuthMiddleware;
 use App\Services\HealthMonitorService;
 use App\Services\LoggingService;
 use App\Services\RetryService;
 
-$auth = new AuthMiddleware();
-$auth->handle();
+// Use new ApiAuthMiddleware for consistent API authentication
+$apiAuth = new ApiAuthMiddleware([
+    'auth' => true,
+    'csrf' => true,
+    'api' => true
+]);
+$apiAuth->handle();
 
 $action = input('action', 'project');
 
