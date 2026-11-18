@@ -40,6 +40,7 @@ source migrations_phase8_part1.sql;
 source migrations_phase8_part2.sql;
 source migrations_phase8_part3.sql;
 source migrations_phase9_part1.sql;
+source migrations_phase14_part1.sql;
 ```
 
 ### 4. Directory Permissions
