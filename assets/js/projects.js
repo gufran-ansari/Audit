@@ -308,6 +308,7 @@ async function handleCreateProject(e) {
     
     const formData = new FormData(createProjectForm);
     formData.append('action', 'create');
+    formData.append('csrf_token', getCsrfToken());
     
     try {
         const response = await fetch('/api/projects', {
@@ -414,6 +415,7 @@ async function archiveProject(projectId) {
         const formData = new FormData();
         formData.append('action', 'archive');
         formData.append('project_id', projectId);
+        formData.append('csrf_token', getCsrfToken());
         
         const response = await fetch('/api/projects', {
             method: 'POST',
@@ -441,6 +443,7 @@ async function restoreProject(projectId) {
         const formData = new FormData();
         formData.append('action', 'restore');
         formData.append('project_id', projectId);
+        formData.append('csrf_token', getCsrfToken());
         
         const response = await fetch('/api/projects', {
             method: 'POST',
@@ -507,11 +510,19 @@ function formatDate(dateString) {
 
 function escapeHtml(text) {
     const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
+        '&': '&',
+        '<': '<',
+        '>': '>',
+        '"': '"',
         "'": '&#039;'
     };
     return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+/**
+ * Get CSRF token from meta tag
+ */
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
 }

@@ -3,6 +3,7 @@
 namespace App\Modules\H1Audit;
 
 use App\Modules\Pages\PageRepository;
+use App\Services\AuthorizationService;
 
 /**
  * H1 Audit Service
@@ -15,6 +16,7 @@ class H1AuditService
     private $processor;
     private $validator;
     private $pageRepository;
+    private $authorizationService;
 
     public function __construct()
     {
@@ -22,6 +24,7 @@ class H1AuditService
         $this->processor = new H1AuditProcessor();
         $this->validator = new H1AuditValidator();
         $this->pageRepository = new PageRepository();
+        $this->authorizationService = AuthorizationService::getInstance();
     }
 
     /**
@@ -29,6 +32,13 @@ class H1AuditService
      */
     public function auditPage(int $pageId): array
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return [
+                'success' => false,
+                'error' => 'Page not found or access denied'
+            ];
+        }
+
         if (!$this->validator->validatePageId($pageId)) {
             return [
                 'success' => false,
@@ -82,6 +92,20 @@ class H1AuditService
             ];
         }
 
+        // Check authorization for all pages (they should belong to the same project)
+        if (!empty($pageIds)) {
+            $firstPage = $this->pageRepository->findById($pageIds[0]);
+            if ($firstPage) {
+                $projectId = $firstPage['project_id'];
+                if (!$this->authorizationService->canAccessProjectPages($projectId, $pageIds)) {
+                    return [
+                        'success' => false,
+                        'error' => 'One or more pages not found or access denied'
+                    ];
+                }
+            }
+        }
+
         $results = [];
         $successful = 0;
         $failed = 0;
@@ -117,6 +141,13 @@ class H1AuditService
      */
     public function auditProject(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [
+                'success' => false,
+                'error' => 'Project not found or access denied'
+            ];
+        }
+
         if (!$this->validator->validateProjectId($projectId)) {
             return [
                 'success' => false,
@@ -144,6 +175,9 @@ class H1AuditService
      */
     public function getPageResult(int $pageId): ?array
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return null;
+        }
         return $this->repository->getResultByPage($pageId);
     }
 
@@ -152,6 +186,9 @@ class H1AuditService
      */
     public function getProjectResults(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->getResultsByProject($projectId);
     }
 
@@ -160,6 +197,9 @@ class H1AuditService
      */
     public function getStats(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->getStats($projectId);
     }
 
@@ -168,6 +208,9 @@ class H1AuditService
      */
     public function deleteResult(int $pageId): bool
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return false;
+        }
         return $this->repository->delete($pageId);
     }
 
@@ -176,6 +219,9 @@ class H1AuditService
      */
     public function deleteProjectResults(int $projectId): bool
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return false;
+        }
         return $this->repository->deleteByProject($projectId);
     }
 }

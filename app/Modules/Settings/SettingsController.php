@@ -2,8 +2,9 @@
 
 namespace App\Modules\Settings;
 
-use App\Middleware\AuthMiddleware;
+use App\Middleware\ApiAuthMiddleware;
 use App\Middleware\RoleMiddleware;
+use App\Services\ActivityLogService;
 
 /**
  * Settings Controller
@@ -14,20 +15,22 @@ use App\Middleware\RoleMiddleware;
 class SettingsController
 {
     private SettingsService $service;
-    private AuthMiddleware $authMiddleware;
+    private ApiAuthMiddleware $apiAuth;
     private RoleMiddleware $roleMiddleware;
+    private ActivityLogService $activityLog;
 
     public function __construct()
     {
         $this->service = new SettingsService();
-        $this->authMiddleware = new AuthMiddleware();
+        $this->apiAuth = new ApiAuthMiddleware(['auth' => true, 'csrf' => true, 'api' => true]);
         $this->roleMiddleware = new RoleMiddleware();
+        $this->activityLog = ActivityLogService::getInstance();
     }
 
     public function handle(): void
     {
-        // Require authentication
-        $this->authMiddleware->handle();
+        // Require authentication and CSRF
+        $this->apiAuth->handle();
 
         // Require super_admin role
         $this->roleMiddleware->superAdmin();
@@ -133,6 +136,15 @@ class SettingsController
         $result = $this->service->updateCategory($category, $values);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'settings_updated',
+                "Settings updated: {$category}",
+                null,
+                ['category' => $category, 'keys' => array_keys($result['updated'])],
+                'settings',
+                null
+            );
+            
             jsonResponse(['success' => true, 'updated' => $result['updated']]);
         } else {
             jsonResponse(['success' => false, 'errors' => $result['errors']], 422);
@@ -183,6 +195,15 @@ class SettingsController
         $result = $this->service->createAdmin($data);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'admin_created',
+                "Admin user created: {$data['email']} ({$data['role']})",
+                null,
+                ['email' => $data['email'], 'role' => $data['role'], 'name' => $data['name']],
+                'user',
+                $result['user_id']
+            );
+            
             jsonResponse(['success' => true, 'user_id' => $result['user_id']], 201);
         } else {
             jsonResponse(['success' => false, 'errors' => $result['errors']], 422);
@@ -200,12 +221,21 @@ class SettingsController
         $data = [];
         if (input('name') !== null) $data['name'] = input('name');
         if (input('email') !== null) $data['email'] = input('email');
-        if (input('password') !== null) $data['password'] = input('password');
+        if (input('password') !== null) $data['password'] = '[REDACTED]';
         if (input('role') !== null) $data['role'] = input('role');
 
         $result = $this->service->updateAdmin($userId, $data);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'admin_updated',
+                "Admin user updated: {$userId}",
+                null,
+                ['user_id' => $userId, 'changes' => array_keys($data)],
+                'user',
+                $userId
+            );
+            
             jsonResponse(['success' => true]);
         } else {
             jsonResponse(['success' => false, 'errors' => $result['errors']], 422);
@@ -223,6 +253,15 @@ class SettingsController
         $result = $this->service->deactivateAdmin($userId);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'admin_deactivated',
+                "Admin user deactivated: {$userId}",
+                null,
+                ['user_id' => $userId],
+                'user',
+                $userId
+            );
+            
             jsonResponse(['success' => true]);
         } else {
             jsonResponse(['success' => false, 'error' => $result['error']], 422);
@@ -240,6 +279,15 @@ class SettingsController
         $result = $this->service->activateAdmin($userId);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'admin_activated',
+                "Admin user activated: {$userId}",
+                null,
+                ['user_id' => $userId],
+                'user',
+                $userId
+            );
+            
             jsonResponse(['success' => true]);
         } else {
             jsonResponse(['success' => false, 'error' => $result['error']], 422);
@@ -259,6 +307,15 @@ class SettingsController
         $result = $this->service->resetPassword($userId, $password);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'admin_password_reset',
+                "Admin password reset for user: {$userId}",
+                null,
+                ['user_id' => $userId],
+                'user',
+                $userId
+            );
+            
             jsonResponse(['success' => true, 'message' => 'Password reset successfully']);
         } else {
             jsonResponse(['success' => false, 'error' => $result['error']], 422);

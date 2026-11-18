@@ -2,7 +2,8 @@
 
 namespace App\Modules\Projects;
 
-use App\Middleware\AuthMiddleware;
+use App\Middleware\ApiAuthMiddleware;
+use App\Services\ActivityLogService;
 
 /**
  * Project Controller
@@ -12,12 +13,14 @@ use App\Middleware\AuthMiddleware;
 class ProjectController
 {
     private $service;
-    private $authMiddleware;
+    private $apiAuth;
+    private $activityLog;
 
     public function __construct()
     {
         $this->service = new ProjectService();
-        $this->authMiddleware = new AuthMiddleware();
+        $this->apiAuth = new ApiAuthMiddleware(['auth' => true, 'csrf' => true, 'api' => true]);
+        $this->activityLog = ActivityLogService::getInstance();
     }
 
     /**
@@ -25,8 +28,8 @@ class ProjectController
      */
     public function handle(): void
     {
-        // Protect all routes
-        $this->authMiddleware->handle();
+        // Protect all routes with API auth middleware (includes CSRF for mutating requests)
+        $this->apiAuth->handle();
 
         $action = input('action', 'list');
         $method = isMethod('POST') ? 'POST' : 'GET';
@@ -116,10 +119,20 @@ class ProjectController
         $result = $this->service->createProject($data);
 
         if ($result['success']) {
+            $project = $result['project'];
+            $this->activityLog->log(
+                'project_created',
+                "Project '{$project['project_name']}' created",
+                $project['id'],
+                ['domain' => $project['primary_domain']],
+                'project',
+                $project['id']
+            );
+            
             jsonResponse([
                 'success' => true,
                 'message' => 'Project created successfully',
-                'project' => $result['project']
+                'project' => $project
             ], 201);
         } else {
             jsonResponse([
@@ -179,10 +192,20 @@ class ProjectController
         $result = $this->service->updateProject($projectId, $data);
 
         if ($result['success']) {
+            $project = $result['project'];
+            $this->activityLog->log(
+                'project_updated',
+                "Project '{$project['project_name']}' updated",
+                $project['id'],
+                ['changes' => array_keys($data)],
+                'project',
+                $project['id']
+            );
+            
             jsonResponse([
                 'success' => true,
                 'message' => 'Project updated successfully',
-                'project' => $result['project']
+                'project' => $project
             ]);
         } else {
             jsonResponse([
@@ -204,9 +227,22 @@ class ProjectController
             return;
         }
 
+        // Get project name before archiving for logging
+        $project = $this->service->getProjectById($projectId);
+        $projectName = $project ? $project['project_name'] : "ID {$projectId}";
+
         $result = $this->service->archiveProject($projectId);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'project_archived',
+                "Project '{$projectName}' archived",
+                $projectId,
+                ['archived' => true],
+                'project',
+                $projectId
+            );
+            
             jsonResponse([
                 'success' => true,
                 'message' => $result['message']
@@ -231,9 +267,22 @@ class ProjectController
             return;
         }
 
+        // Get project name before restoring for logging
+        $project = $this->service->getProjectById($projectId);
+        $projectName = $project ? $project['project_name'] : "ID {$projectId}";
+
         $result = $this->service->restoreProject($projectId);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'project_restored',
+                "Project '{$projectName}' restored from archive",
+                $projectId,
+                ['restored' => true],
+                'project',
+                $projectId
+            );
+            
             jsonResponse([
                 'success' => true,
                 'message' => $result['message']

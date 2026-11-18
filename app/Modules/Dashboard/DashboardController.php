@@ -2,7 +2,9 @@
 
 namespace App\Modules\Dashboard;
 
-use App\Middleware\AuthMiddleware;
+use App\Middleware\ApiAuthMiddleware;
+use App\Middleware\RoleMiddleware;
+use App\Services\ActivityLogService;
 
 /**
  * Dashboard Controller
@@ -12,17 +14,19 @@ use App\Middleware\AuthMiddleware;
 class DashboardController
 {
     private DashboardService $service;
-    private AuthMiddleware $authMiddleware;
+    private ApiAuthMiddleware $apiAuth;
+    private ActivityLogService $activityLog;
 
     public function __construct()
     {
         $this->service = new DashboardService();
-        $this->authMiddleware = new AuthMiddleware();
+        $this->apiAuth = new ApiAuthMiddleware(['auth' => true, 'csrf' => true, 'api' => true]);
+        $this->activityLog = ActivityLogService::getInstance();
     }
 
     public function handle(): void
     {
-        $this->authMiddleware->handle();
+        $this->apiAuth->handle();
 
         $action = input('action', 'overview');
         $method = isMethod('POST') ? 'POST' : 'GET';
@@ -34,6 +38,12 @@ class DashboardController
 
             case 'activity':
                 $this->recentActivity();
+                break;
+
+            case 'security_events':
+                // Require super_admin for security events
+                (new RoleMiddleware())->superAdmin();
+                $this->securityEvents();
                 break;
 
             case 'search':
@@ -75,6 +85,13 @@ class DashboardController
         $limit = (int) input('limit', 20);
         $activity = $this->service->getRecentActivity($limit);
         jsonResponse(['success' => true, 'activity' => $activity]);
+    }
+
+    private function securityEvents(): void
+    {
+        $limit = (int) input('limit', 50);
+        $events = $this->activityLog->getSecurityEvents($limit);
+        jsonResponse(['success' => true, 'events' => $events]);
     }
 
     private function globalSearch(): void

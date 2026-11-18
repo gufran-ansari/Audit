@@ -1,11 +1,12 @@
 <?php
-
+ 
 namespace App\Modules\Pages;
-
+ 
 use App\Modules\Sitemaps\SitemapService;
 use App\Modules\Sitemaps\SitemapRepository;
+use App\Services\AuthorizationService;
 use App\Services\SecureUrlFetcher;
-
+ 
 /**
  * Page Service
  * 
@@ -18,16 +19,18 @@ class PageService
     private $sitemapService;
     private $sitemapRepository;
     private SecureUrlFetcher $fetcher;
-
+    private $authorizationService;
+ 
     // Memory limit for XML processing (in bytes)
     private $memoryLimit = 50 * 1024 * 1024; // 50MB
-
+ 
     public function __construct()
     {
         $this->repository = new PageRepository();
         $this->validator = new PageValidator();
         $this->sitemapService = new SitemapService();
         $this->sitemapRepository = new SitemapRepository();
+        $this->authorizationService = AuthorizationService::getInstance();
         $this->fetcher = new SecureUrlFetcher(
             timeout: 60,
             connectTimeout: 10,
@@ -346,11 +349,15 @@ class PageService
         ];
     }
 
-    /**
+/**
      * Get all pages for a project
      */
     public function getProjectPages(int $projectId, int $page = 1, int $perPage = 50, array $filters = []): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return ['pages' => [], 'pagination' => ['current_page' => $page, 'per_page' => $perPage, 'total' => 0, 'total_pages' => 0]];
+        }
+        
         $pages = $this->repository->getByProject($projectId, $page, $perPage, $filters);
         $total = $this->repository->getTotalCount($projectId, $filters);
 
@@ -364,12 +371,16 @@ class PageService
             ]
         ];
     }
-
+ 
     /**
      * Search pages
      */
     public function searchPages(int $projectId, string $searchTerm, int $page = 1, int $perPage = 50): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return ['pages' => [], 'search_term' => $searchTerm];
+        }
+        
         $pages = $this->repository->search($projectId, $searchTerm, $page, $perPage);
         
         return [
@@ -377,20 +388,31 @@ class PageService
             'search_term' => $searchTerm
         ];
     }
-
+ 
     /**
      * Get page statistics
      */
     public function getPageStats(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return ['total_pages' => 0, 'unique_pages' => 0, 'pending' => 0, 'processing' => 0, 'completed' => 0, 'failed' => 0];
+        }
+        
         return $this->repository->getStats($projectId);
     }
-
+ 
     /**
      * Delete page
      */
     public function deletePage(int $pageId): array
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return [
+                'success' => false,
+                'error' => 'Page not found or access denied'
+            ];
+        }
+        
         $page = $this->repository->findById($pageId);
         
         if (!$page) {
@@ -399,16 +421,16 @@ class PageService
                 'error' => 'Page not found'
             ];
         }
-
+ 
         $deleted = $this->repository->delete($pageId);
-
+ 
         if (!$deleted) {
             return [
                 'success' => false,
                 'error' => 'Failed to delete page'
             ];
         }
-
+ 
         return [
             'success' => true,
             'message' => 'Page deleted successfully'

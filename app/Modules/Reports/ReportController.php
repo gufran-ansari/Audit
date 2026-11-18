@@ -2,7 +2,8 @@
 
 namespace App\Modules\Reports;
 
-use App\Middleware\AuthMiddleware;
+use App\Middleware\ApiAuthMiddleware;
+use App\Services\ActivityLogService;
 
 /**
  * Report Controller
@@ -12,17 +13,19 @@ use App\Middleware\AuthMiddleware;
 class ReportController
 {
     private ReportService $service;
-    private AuthMiddleware $authMiddleware;
+    private ApiAuthMiddleware $apiAuth;
+    private ActivityLogService $activityLog;
 
     public function __construct()
     {
         $this->service = new ReportService();
-        $this->authMiddleware = new AuthMiddleware();
+        $this->apiAuth = new ApiAuthMiddleware(['auth' => true, 'csrf' => true, 'api' => true]);
+        $this->activityLog = ActivityLogService::getInstance();
     }
 
     public function handle(): void
     {
-        $this->authMiddleware->handle();
+        $this->apiAuth->handle();
 
         $action = input('action', 'get');
         $method = isMethod('POST') ? 'POST' : 'GET';
@@ -82,6 +85,15 @@ class ReportController
 
         $report = $this->service->getOrCreate($projectId, $projectName);
 
+        $this->activityLog->log(
+            'report_created',
+            "Report created for project",
+            $projectId,
+            ['slug' => $report['report_slug'], 'visibility' => $report['visibility']],
+            'report',
+            $report['id']
+        );
+        
         jsonResponse(['success' => true, 'report' => $report]);
     }
 
@@ -97,6 +109,20 @@ class ReportController
 
         $success = $this->service->setVisibility($projectId, $visibility);
 
+        if ($success) {
+            $repo = new ReportRepository();
+            $report = $repo->findByProject($projectId);
+            
+            $this->activityLog->log(
+                'report_visibility_changed',
+                "Report visibility changed to {$visibility}",
+                $projectId,
+                ['visibility' => $visibility, 'slug' => $report['report_slug'] ?? null],
+                'report',
+                $report['id'] ?? null
+            );
+        }
+        
         jsonResponse(['success' => $success]);
     }
 
@@ -112,6 +138,20 @@ class ReportController
 
         $success = $this->service->updateSlug($projectId, $slug);
 
+        if ($success) {
+            $repo = new ReportRepository();
+            $report = $repo->findByProject($projectId);
+            
+            $this->activityLog->log(
+                'report_slug_updated',
+                "Report slug updated to {$slug}",
+                $projectId,
+                ['slug' => $slug],
+                'report',
+                $report['id'] ?? null
+            );
+        }
+        
         jsonResponse(['success' => $success, 'message' => $success ? 'Slug updated' : 'Failed to update slug']);
     }
 

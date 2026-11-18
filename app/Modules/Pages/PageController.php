@@ -2,7 +2,7 @@
 
 namespace App\Modules\Pages;
 
-use App\Middleware\AuthMiddleware;
+use App\Middleware\ApiAuthMiddleware;
 
 /**
  * Page Controller
@@ -12,12 +12,12 @@ use App\Middleware\AuthMiddleware;
 class PageController
 {
     private $service;
-    private $authMiddleware;
+    private $apiAuth;
 
     public function __construct()
     {
         $this->service = new PageService();
-        $this->authMiddleware = new AuthMiddleware();
+        $this->apiAuth = new ApiAuthMiddleware(['auth' => true, 'csrf' => true, 'api' => true]);
     }
 
     /**
@@ -25,8 +25,8 @@ class PageController
      */
     public function handle(): void
     {
-        // Protect all routes
-        $this->authMiddleware->handle();
+        // Protect all routes with API auth middleware (includes CSRF for mutating requests)
+        $this->apiAuth->handle();
 
         $action = input('action', 'list');
         $method = isMethod('POST') ? 'POST' : 'GET';

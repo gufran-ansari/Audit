@@ -1,10 +1,11 @@
 <?php
-
+ 
 namespace App\Modules\Dashboard;
-
+ 
 use Database\Database;
 use App\Services\AuthService;
-
+use App\Services\AuthorizationService;
+ 
 /**
  * Dashboard Service
  * 
@@ -15,11 +16,13 @@ class DashboardService
 {
     private $db;
     private AuthService $auth;
-
+    private AuthorizationService $authorization;
+ 
     public function __construct()
     {
         $this->db = Database::getInstance();
         $this->auth = new AuthService();
+        $this->authorization = AuthorizationService::getInstance();
     }
 
     /**
@@ -37,19 +40,31 @@ class DashboardService
         ];
     }
 
-    /**
+/**
      * Global statistics (cached for 60s).
      */
     private function getStats(): array
     {
         $cache = \App\Services\CacheService::getInstance();
-
-        return $cache->remember('dashboard_stats', 60, function () {
-            $projects = $this->db->query("SELECT COUNT(*) as cnt FROM projects WHERE project_status = 'active'");
-            $pages = $this->db->query("SELECT COUNT(*) as cnt FROM project_pages WHERE url_status = 'active'");
-            $audits = $this->db->query("SELECT COUNT(*) as cnt FROM page_audit_results");
-            $overrides = $this->db->query("SELECT COUNT(*) as cnt FROM page_manual_overrides");
-
+ 
+        $authorizedProjectIds = $this->authorization->getAccessibleProjectIds();
+        if (empty($authorizedProjectIds)) {
+            return [
+                'total_projects' => 0,
+                'total_pages' => 0,
+                'total_audits' => 0,
+                'total_overrides' => 0,
+            ];
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($authorizedProjectIds), '?'));
+ 
+        return $cache->remember('dashboard_stats_' . implode(',', $authorizedProjectIds), 60, function () use ($authorizedProjectIds, $placeholders) {
+            $projects = $this->db->query("SELECT COUNT(*) as cnt FROM projects WHERE project_status = 'active' AND id IN ($placeholders)", $authorizedProjectIds);
+            $pages = $this->db->query("SELECT COUNT(*) as cnt FROM project_pages WHERE url_status = 'active' AND project_id IN ($placeholders)", $authorizedProjectIds);
+            $audits = $this->db->query("SELECT COUNT(*) as cnt FROM page_audit_results par INNER JOIN project_pages pp ON pp.id = par.project_page_id WHERE pp.project_id IN ($placeholders)", $authorizedProjectIds);
+            $overrides = $this->db->query("SELECT COUNT(*) as cnt FROM page_manual_overrides pmo INNER JOIN project_pages pp ON pp.id = pmo.project_page_id WHERE pp.project_id IN ($placeholders)", $authorizedProjectIds);
+ 
             return [
                 'total_projects' => $projects ? (int) $projects[0]['cnt'] : 0,
                 'total_pages' => $pages ? (int) $pages[0]['cnt'] : 0,
@@ -59,48 +74,81 @@ class DashboardService
         });
     }
 
-    /**
+/**
      * Recent projects (last 5).
      */
     private function getRecentProjects(): array
     {
+        $authorizedProjectIds = $this->authorization->getAccessibleProjectIds();
+        if (empty($authorizedProjectIds)) {
+            return [];
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($authorizedProjectIds), '?'));
+        
         return $this->db->query(
             "SELECT id, project_name, primary_domain, project_status, created_at
-             FROM projects ORDER BY created_at DESC LIMIT 5"
+             FROM projects WHERE id IN ($placeholders) ORDER BY created_at DESC LIMIT 5",
+            $authorizedProjectIds
         ) ?: [];
     }
-
+ 
     /**
      * Recent reports (last 5).
      */
     private function getRecentReports(): array
     {
+        $authorizedProjectIds = $this->authorization->getAccessibleProjectIds();
+        if (empty($authorizedProjectIds)) {
+            return [];
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($authorizedProjectIds), '?'));
+        
         return $this->db->query(
             "SELECT r.id, r.report_slug, r.visibility, r.last_generated_at, p.project_name
              FROM reports r
              INNER JOIN projects p ON p.id = r.project_id
-             ORDER BY r.updated_at DESC LIMIT 5"
+             WHERE p.id IN ($placeholders)
+             ORDER BY r.updated_at DESC LIMIT 5",
+            $authorizedProjectIds
         ) ?: [];
     }
-
+ 
     /**
      * Running jobs.
      */
     private function getRunningJobs(): array
     {
+        $authorizedProjectIds = $this->authorization->getAccessibleProjectIds();
+        if (empty($authorizedProjectIds)) {
+            return ['count' => 0];
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($authorizedProjectIds), '?'));
+        
         $result = $this->db->query(
-            "SELECT COUNT(*) as cnt FROM project_pages WHERE page_status = 'processing'"
+            "SELECT COUNT(*) as cnt FROM project_pages WHERE page_status = 'processing' AND project_id IN ($placeholders)",
+            $authorizedProjectIds
         );
         return ['count' => $result ? (int) $result[0]['cnt'] : 0];
     }
-
+ 
     /**
      * Failed jobs.
      */
     private function getFailedJobs(): array
     {
+        $authorizedProjectIds = $this->authorization->getAccessibleProjectIds();
+        if (empty($authorizedProjectIds)) {
+            return ['count' => 0];
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($authorizedProjectIds), '?'));
+        
         $result = $this->db->query(
-            "SELECT COUNT(*) as cnt FROM project_pages WHERE page_status = 'failed'"
+            "SELECT COUNT(*) as cnt FROM project_pages WHERE page_status = 'failed' AND project_id IN ($placeholders)",
+            $authorizedProjectIds
         );
         return ['count' => $result ? (int) $result[0]['cnt'] : 0];
     }
@@ -110,18 +158,27 @@ class DashboardService
     // ==========================================
 
     /**
-     * Get recent activity entries.
+     * Get recent activity entries for user's accessible projects.
      */
     public function getRecentActivity(int $limit = 20): array
     {
+        $authorizedProjectIds = $this->authorization->getAccessibleProjectIds();
+        if (empty($authorizedProjectIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($authorizedProjectIds), '?'));
+        $params = array_merge($authorizedProjectIds, ['lim' => $limit]);
+
         return $this->db->query(
             "SELECT al.*, u.name as user_name, p.project_name
              FROM activity_log al
              LEFT JOIN users u ON u.id = al.user_id
              LEFT JOIN projects p ON p.id = al.project_id
+             WHERE al.project_id IN ($placeholders)
              ORDER BY al.created_at DESC
              LIMIT :lim",
-            ['lim' => $limit]
+            $params
         ) ?: [];
     }
 
@@ -158,12 +215,21 @@ class DashboardService
         $q = '%' . $query . '%';
         $results = [];
 
+        // Get accessible project IDs
+        $authorizedProjectIds = $this->authorization->getAccessibleProjectIds();
+        if (empty($authorizedProjectIds)) {
+            return [];
+        }
+
+        $projectPlaceholders = implode(',', array_fill(0, count($authorizedProjectIds), '?'));
+
         // Search projects
         $projects = $this->db->query(
             "SELECT id, uuid, project_name, primary_domain, 'project' as type
              FROM projects WHERE project_name LIKE :q OR primary_domain LIKE :q
+             AND id IN ($projectPlaceholders)
              ORDER BY project_name LIMIT 5",
-            ['q' => $q]
+            array_merge(['q' => $q], $authorizedProjectIds)
         ) ?: [];
         foreach ($projects as $p) {
             $results[] = [
@@ -182,8 +248,9 @@ class DashboardService
              FROM project_pages pp
              INNER JOIN projects p ON p.id = pp.project_id
              WHERE pp.original_url LIKE :q
+             AND p.id IN ($projectPlaceholders)
              ORDER BY pp.id DESC LIMIT 5",
-            ['q' => $q]
+            array_merge(['q' => $q], $authorizedProjectIds)
         ) ?: [];
         foreach ($pages as $pg) {
             $results[] = [
@@ -202,8 +269,9 @@ class DashboardService
              FROM reports r
              INNER JOIN projects p ON p.id = r.project_id
              WHERE r.report_slug LIKE :q OR p.project_name LIKE :q
+             AND p.id IN ($projectPlaceholders)
              LIMIT 5",
-            ['q' => $q]
+            array_merge(['q' => $q], $authorizedProjectIds)
         ) ?: [];
         foreach ($reports as $r) {
             $results[] = [
@@ -257,21 +325,49 @@ class DashboardService
 
     /**
      * Mark notification as read.
+     * User can only mark their own notifications or global notifications as read.
      */
     public function markNotificationRead(int $id): void
     {
+        $user = $this->auth->user();
+        if (!$user) return;
+
+        // Super admin can mark any notification as read
+        if ($this->authorization->isSuperAdmin()) {
+            $this->db->execute(
+                "UPDATE notifications SET is_read = 1 WHERE id = :id",
+                ['id' => $id]
+            );
+            return;
+        }
+
+        // Regular users can only mark their own or global notifications as read
         $this->db->execute(
-            "UPDATE notifications SET is_read = 1 WHERE id = :id",
-            ['id' => $id]
+            "UPDATE notifications SET is_read = 1 WHERE id = :id AND (user_id = :uid OR user_id IS NULL)",
+            ['id' => $id, 'uid' => $user['id']]
         );
     }
 
     /**
      * Dismiss (delete) a notification.
+     * User can only dismiss their own notifications. Global notifications cannot be dismissed by regular users.
      */
     public function dismissNotification(int $id): void
     {
-        $this->db->execute("DELETE FROM notifications WHERE id = :id", ['id' => $id]);
+        $user = $this->auth->user();
+        if (!$user) return;
+
+        // Super admin can dismiss any notification
+        if ($this->authorization->isSuperAdmin()) {
+            $this->db->execute("DELETE FROM notifications WHERE id = :id", ['id' => $id]);
+            return;
+        }
+
+        // Regular users can only dismiss their own notifications
+        $this->db->execute(
+            "DELETE FROM notifications WHERE id = :id AND user_id = :uid",
+            ['id' => $id, 'uid' => $user['id']]
+        );
     }
 
     /**

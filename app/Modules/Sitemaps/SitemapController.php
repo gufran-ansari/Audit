@@ -2,7 +2,8 @@
 
 namespace App\Modules\Sitemaps;
 
-use App\Middleware\AuthMiddleware;
+use App\Middleware\ApiAuthMiddleware;
+use App\Services\ActivityLogService;
 
 /**
  * Sitemap Controller
@@ -12,12 +13,14 @@ use App\Middleware\AuthMiddleware;
 class SitemapController
 {
     private $service;
-    private $authMiddleware;
+    private $apiAuth;
+    private $activityLog;
 
     public function __construct()
     {
         $this->service = new SitemapService();
-        $this->authMiddleware = new AuthMiddleware();
+        $this->apiAuth = new ApiAuthMiddleware(['auth' => true, 'csrf' => true, 'api' => true]);
+        $this->activityLog = ActivityLogService::getInstance();
     }
 
     /**
@@ -25,8 +28,8 @@ class SitemapController
      */
     public function handle(): void
     {
-        // Protect all routes
-        $this->authMiddleware->handle();
+        // Protect all routes with API auth middleware (includes CSRF for mutating requests)
+        $this->apiAuth->handle();
 
         $action = input('action', 'list');
         $method = isMethod('POST') ? 'POST' : 'GET';
@@ -112,6 +115,15 @@ class SitemapController
         $result = $this->service->discoverSitemaps($projectId);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'sitemap_discovered',
+                "Discovered {$result['count']} sitemap(s) for project",
+                $projectId,
+                ['count' => $result['count'], 'sitemaps' => array_column($result['sitemaps'], 'url')],
+                'sitemap',
+                null
+            );
+            
             jsonResponse([
                 'success' => true,
                 'message' => 'Sitemaps discovered successfully',
@@ -147,10 +159,20 @@ class SitemapController
         $result = $this->service->addSitemap($projectId, $sitemapUrl, 'manual');
 
         if ($result['success']) {
+            $sitemap = $result['sitemap'];
+            $this->activityLog->log(
+                'sitemap_added',
+                "Sitemap added: {$sitemapUrl}",
+                $projectId,
+                ['url' => $sitemapUrl, 'type' => 'manual'],
+                'sitemap',
+                $sitemap['id']
+            );
+            
             jsonResponse([
                 'success' => true,
                 'message' => 'Sitemap added successfully',
-                'sitemap' => $result['sitemap']
+                'sitemap' => $sitemap
             ], 201);
         } else {
             jsonResponse([
@@ -217,9 +239,23 @@ class SitemapController
             return;
         }
 
+        // Get sitemap details before deletion for logging
+        $sitemap = $this->service->getSitemap($sitemapId);
+        $sitemapUrl = $sitemap ? $sitemap['url'] : "ID {$sitemapId}";
+        $projectId = $sitemap ? $sitemap['project_id'] : null;
+
         $result = $this->service->deleteSitemap($sitemapId);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'sitemap_deleted',
+                "Sitemap removed: {$sitemapUrl}",
+                $projectId,
+                ['url' => $sitemapUrl],
+                'sitemap',
+                $sitemapId
+            );
+            
             jsonResponse([
                 'success' => true,
                 'message' => $result['message']
@@ -247,10 +283,20 @@ class SitemapController
         $result = $this->service->revalidateSitemap($sitemapId);
 
         if ($result['success']) {
+            $sitemap = $result['sitemap'];
+            $this->activityLog->log(
+                'sitemap_revalidated',
+                "Sitemap re-validated: {$sitemap['url']}",
+                $sitemap['project_id'],
+                ['url' => $sitemap['url']],
+                'sitemap',
+                $sitemap['id']
+            );
+            
             jsonResponse([
                 'success' => true,
                 'message' => 'Sitemap re-validated successfully',
-                'sitemap' => $result['sitemap']
+                'sitemap' => $sitemap
             ]);
         } else {
             jsonResponse([
@@ -292,9 +338,22 @@ class SitemapController
             return;
         }
 
+        $sitemap = $this->service->getSitemap($sitemapId);
+        $sitemapUrl = $sitemap ? $sitemap['url'] : "ID {$sitemapId}";
+        $projectId = $sitemap ? $sitemap['project_id'] : null;
+
         $result = $this->service->disableSitemap($sitemapId);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'sitemap_disabled',
+                "Sitemap disabled: {$sitemapUrl}",
+                $projectId,
+                ['url' => $sitemapUrl],
+                'sitemap',
+                $sitemapId
+            );
+            
             jsonResponse([
                 'success' => true,
                 'message' => $result['message']
@@ -319,9 +378,22 @@ class SitemapController
             return;
         }
 
+        $sitemap = $this->service->getSitemap($sitemapId);
+        $sitemapUrl = $sitemap ? $sitemap['url'] : "ID {$sitemapId}";
+        $projectId = $sitemap ? $sitemap['project_id'] : null;
+
         $result = $this->service->enableSitemap($sitemapId);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'sitemap_enabled',
+                "Sitemap enabled: {$sitemapUrl}",
+                $projectId,
+                ['url' => $sitemapUrl],
+                'sitemap',
+                $sitemapId
+            );
+            
             jsonResponse([
                 'success' => true,
                 'message' => $result['message']

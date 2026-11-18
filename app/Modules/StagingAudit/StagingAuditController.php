@@ -2,7 +2,8 @@
 
 namespace App\Modules\StagingAudit;
 
-use App\Middleware\AuthMiddleware;
+use App\Middleware\ApiAuthMiddleware;
+use App\Services\AuthorizationService;
 
 /**
  * Staging Audit Controller
@@ -12,12 +13,14 @@ use App\Middleware\AuthMiddleware;
 class StagingAuditController
 {
     private $service;
-    private $authMiddleware;
+    private $apiAuth;
+    private $authorizationService;
 
     public function __construct()
     {
         $this->service = new StagingAuditService();
-        $this->authMiddleware = new AuthMiddleware();
+        $this->apiAuth = new ApiAuthMiddleware(['auth' => true, 'csrf' => true, 'api' => true]);
+        $this->authorizationService = AuthorizationService::getInstance();
     }
 
     /**
@@ -25,8 +28,8 @@ class StagingAuditController
      */
     public function handle(): void
     {
-        // Protect all routes
-        $this->authMiddleware->handle();
+        // Protect all routes with API auth middleware (includes CSRF for mutating requests)
+        $this->apiAuth->handle();
 
         $action = input('action', 'list');
         $method = isMethod('POST') ? 'POST' : 'GET';
@@ -89,6 +92,11 @@ class StagingAuditController
             return;
         }
 
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            jsonResponse(['error' => 'Page not found or access denied'], 404);
+            return;
+        }
+
         $result = $this->service->auditPage($pageId);
 
         if ($result['success']) {
@@ -114,6 +122,14 @@ class StagingAuditController
 
         if (!$pageIds || !is_array($pageIds)) {
             jsonResponse(['error' => 'Page IDs array is required'], 400);
+            return;
+        }
+
+        if (!$this->authorizationService->canAccessProjectPages(
+            (int)input('project_id'),
+            array_map('intval', $pageIds)
+        )) {
+            jsonResponse(['error' => 'One or more pages not found or access denied'], 404);
             return;
         }
 
@@ -147,6 +163,11 @@ class StagingAuditController
             return;
         }
 
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
+            return;
+        }
+
         $result = $this->service->auditProject($projectId);
 
         if ($result['success']) {
@@ -177,6 +198,11 @@ class StagingAuditController
             return;
         }
 
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
+            return;
+        }
+
         $results = $this->service->getProjectResults($projectId);
 
         jsonResponse([
@@ -197,6 +223,11 @@ class StagingAuditController
             return;
         }
 
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
+            return;
+        }
+
         $stats = $this->service->getStats($projectId);
 
         jsonResponse([
@@ -214,6 +245,11 @@ class StagingAuditController
 
         if (!$pageId) {
             jsonResponse(['error' => 'Page ID is required'], 400);
+            return;
+        }
+
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            jsonResponse(['error' => 'Page not found or access denied'], 404);
             return;
         }
 

@@ -1,9 +1,10 @@
 <?php
-
+ 
 namespace App\Modules\Overrides;
-
+ 
+use App\Services\AuthorizationService;
 use App\Services\AuthService;
-
+ 
 /**
  * Override Service
  * 
@@ -14,20 +15,22 @@ class OverrideService
 {
     private OverrideRepository $repository;
     private AuthService $authService;
-
+    private AuthorizationService $authorizationService;
+ 
     /** Valid override states */
     private const VALID_STATUSES = ['ignored', 'fixed', 'accepted', 'false_positive', 'needs_review'];
-
+ 
     /** Valid module names */
     private const VALID_MODULES = [
         'h1_audit', 'meta_audit', 'noindex_audit', 'faq_schema_audit',
         'lorem_audit', 'staging_audit', 'word_occurrence_audit'
     ];
-
+ 
     public function __construct()
     {
         $this->repository = new OverrideRepository();
         $this->authService = new AuthService();
+        $this->authorizationService = AuthorizationService::getInstance();
     }
 
     /**
@@ -35,6 +38,10 @@ class OverrideService
      */
     public function setOverride(int $pageId, string $moduleName, string $originalStatus, string $overrideStatus, ?string $notes = null): array
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return ['success' => false, 'error' => 'Page not found or access denied'];
+        }
+        
         // Validate module
         if (!in_array($moduleName, self::VALID_MODULES)) {
             return ['success' => false, 'error' => 'Invalid module name'];
@@ -82,6 +89,10 @@ class OverrideService
      */
     public function removeOverride(int $pageId, string $moduleName): array
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return ['success' => false, 'error' => 'Page not found or access denied'];
+        }
+        
         $existing = $this->repository->findByPageAndModule($pageId, $moduleName);
         if (!$existing) {
             return ['success' => false, 'error' => 'Override not found'];
@@ -103,51 +114,76 @@ class OverrideService
         return ['success' => true, 'message' => 'Override removed'];
     }
 
-    /**
+/**
      * Get overrides for a specific page.
      */
     public function getPageOverrides(int $pageId): array
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return [];
+        }
         return $this->repository->findByPage($pageId);
     }
-
+ 
     /**
      * Get override for a specific page + module.
      */
     public function getOverride(int $pageId, string $moduleName): ?array
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return null;
+        }
         return $this->repository->findByPageAndModule($pageId, $moduleName);
     }
-
+ 
     /**
      * Get override history for a page + module.
      */
     public function getHistory(int $pageId, string $moduleName): array
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return [];
+        }
         return $this->repository->getHistoryByPageModule($pageId, $moduleName);
     }
-
+ 
     /**
      * Get all overrides for a project.
      */
     public function getProjectOverrides(int $projectId, array $filters = []): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->findByProject($projectId, $filters);
     }
-
+ 
     /**
      * Get override summary counts for a project.
      */
     public function getProjectSummary(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [
+                'total' => 0,
+                'ignored' => 0,
+                'fixed' => 0,
+                'accepted' => 0,
+                'false_positive' => 0,
+                'needs_review' => 0,
+            ];
+        }
         return $this->repository->getProjectSummary($projectId);
     }
-
+ 
     /**
      * Get override map for a project (for dashboard table display).
      */
     public function getOverrideMap(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->getOverrideMap($projectId);
     }
 

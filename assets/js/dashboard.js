@@ -398,7 +398,7 @@
             btn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 var id = parseInt(this.dataset.id);
-                fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'notification_dismiss', id: id }) });
+                fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() }, body: JSON.stringify({ action: 'notification_dismiss', id: id }) });
                 this.closest('.notif-item').remove();
             });
         });
@@ -407,7 +407,7 @@
         var markAllBtn = document.getElementById('markAllReadBtn');
         if (markAllBtn) {
             markAllBtn.addEventListener('click', function () {
-                fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'notifications_read_all' }) });
+                fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() }, body: JSON.stringify({ action: 'notifications_read_all' }) });
                 dd.querySelectorAll('.notif-item').forEach(function (el) { el.classList.remove('bg-blue-50/50', 'dark:bg-blue-900/10'); });
                 updateBadge(0);
             });
@@ -538,6 +538,14 @@
             clearTimeout(timer);
             timer = setTimeout(function () { fn.apply(ctx, args); }, delay);
         };
+    }
+
+    /**
+     * Get CSRF token from meta tag
+     */
+    function getCsrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
     }
 
     // --- Boot ---

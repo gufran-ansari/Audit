@@ -3,6 +3,7 @@
 namespace App\Modules\WordOccurrenceAudit;
 
 use App\Modules\Pages\PageRepository;
+use App\Services\AuthorizationService;
 
 /**
  * Word Occurrence Service
@@ -16,6 +17,7 @@ class WordOccurrenceService
     private $processor;
     private $validator;
     private $pageRepository;
+    private $authorizationService;
 
     public function __construct()
     {
@@ -23,6 +25,7 @@ class WordOccurrenceService
         $this->processor = new WordOccurrenceProcessor();
         $this->validator = new WordOccurrenceValidator();
         $this->pageRepository = new PageRepository();
+        $this->authorizationService = AuthorizationService::getInstance();
     }
 
     /**
@@ -33,6 +36,13 @@ class WordOccurrenceService
      */
     public function auditPage(int $pageId, array $keywords): array
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return [
+                'success' => false,
+                'error' => 'Page not found or access denied'
+            ];
+        }
+
         if (!$this->validator->validatePageId($pageId)) {
             return [
                 'success' => false,
@@ -98,6 +108,20 @@ class WordOccurrenceService
             ];
         }
 
+        // Check authorization for all pages (they should belong to the same project)
+        if (!empty($pageIds)) {
+            $firstPage = $this->pageRepository->findById($pageIds[0]);
+            if ($firstPage) {
+                $projectId = $firstPage['project_id'];
+                if (!$this->authorizationService->canAccessProjectPages($projectId, $pageIds)) {
+                    return [
+                        'success' => false,
+                        'error' => 'One or more pages not found or access denied'
+                    ];
+                }
+            }
+        }
+
         $results = [];
         $successful = 0;
         $failed = 0;
@@ -137,6 +161,13 @@ class WordOccurrenceService
      */
     public function auditProject(int $projectId, string $keywordInput, ?int $userId = null): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [
+                'success' => false,
+                'error' => 'Project not found or access denied'
+            ];
+        }
+
         if (!$this->validator->validateProjectId($projectId)) {
             return [
                 'success' => false,
@@ -190,6 +221,9 @@ class WordOccurrenceService
      */
     public function getProjectResults(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->getResultsByProject($projectId);
     }
 
@@ -198,6 +232,9 @@ class WordOccurrenceService
      */
     public function getStats(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->getStats($projectId);
     }
 
@@ -206,6 +243,9 @@ class WordOccurrenceService
      */
     public function getSearchHistory(int $projectId, int $limit = 20): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->getSearchHistory($projectId, $limit);
     }
 
@@ -214,6 +254,9 @@ class WordOccurrenceService
      */
     public function getDistinctKeywords(int $projectId, int $limit = 50): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->getDistinctKeywords($projectId, $limit);
     }
 
@@ -222,6 +265,9 @@ class WordOccurrenceService
      */
     public function deleteSearch(int $searchId, int $projectId): bool
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return false;
+        }
         return $this->repository->deleteSearch($searchId, $projectId);
     }
 
@@ -230,6 +276,9 @@ class WordOccurrenceService
      */
     public function deleteResult(int $pageId): bool
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return false;
+        }
         return $this->repository->delete($pageId);
     }
 
@@ -238,6 +287,9 @@ class WordOccurrenceService
      */
     public function deleteProjectResults(int $projectId): bool
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return false;
+        }
         return $this->repository->deleteByProject($projectId);
     }
 }

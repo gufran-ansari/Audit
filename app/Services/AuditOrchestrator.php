@@ -1,9 +1,10 @@
 <?php
-
+ 
 namespace App\Services;
-
+ 
 use App\Modules\Pages\PageRepository;
-
+use App\Services\AuthorizationService;
+ 
 /**
  * Audit Orchestrator
  * 
@@ -25,23 +26,25 @@ class AuditOrchestrator
     private PageRepository $pageRepository;
     private ?AuditRunService $runService;
     private ?AuditHistoryService $historyService;
-
+    private AuthorizationService $authorizationService;
+ 
     /**
      * Cached processor/repository instances per module key.
      */
     private array $processors = [];
     private array $repositories = [];
-
+ 
     /**
      * Optional extra parameters per module (e.g. word occurrence keywords).
      */
     private array $moduleParams = [];
-
+ 
     public function __construct()
     {
         $this->fetchService = new PageFetchService();
         $this->pageRepository = new PageRepository();
-
+        $this->authorizationService = AuthorizationService::getInstance();
+ 
         // These services exist from Phase 4 Part 3. Guard in case of partial setup.
         $this->runService = class_exists(AuditRunService::class) ? new AuditRunService() : null;
         $this->historyService = class_exists(AuditHistoryService::class) ? new AuditHistoryService() : null;
@@ -66,6 +69,14 @@ class AuditOrchestrator
      */
     public function runProject(int $projectId, array $moduleKeys, array $options = []): array
     {
+        // Check authorization
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [
+                'success' => false,
+                'error' => 'Project not found or access denied'
+            ];
+        }
+        
         // Resolve modules through the registry (validates + orders them)
         $modules = ModuleRegistry::resolve($moduleKeys);
 
@@ -107,19 +118,28 @@ class AuditOrchestrator
      */
     public function runPages(int $projectId, array $pageIds, array $moduleKeys, array $options = []): array
     {
+        // Check authorization
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [
+                'success' => false,
+                'error' => 'Project not found or access denied'
+            ];
+        }
+        
+        // Verify all pages belong to this project and user has access
+        if (!$this->authorizationService->canAccessProjectPages($projectId, $pageIds)) {
+            return [
+                'success' => false,
+                'error' => 'One or more pages not found or access denied'
+            ];
+        }
+
         $modules = ModuleRegistry::resolve($moduleKeys);
 
         if (empty($modules)) {
             return [
                 'success' => false,
                 'error' => 'No valid modules selected'
-            ];
-        }
-
-        if (empty($pageIds)) {
-            return [
-                'success' => false,
-                'error' => 'No pages selected'
             ];
         }
 

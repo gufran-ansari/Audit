@@ -4,17 +4,19 @@
  * 
  * Project health checks, system status, and processing overview.
  * Actions:
- *   - project: Get project health status
- *   - system: Get system-wide health
- *   - safeguards: Run processing safeguards
+ *   - project: Get project health status (user-accessible projects)
+ *   - system: Get system-wide health (super_admin only)
+ *   - safeguards: Run processing safeguards (super_admin only)
  *   - metrics: Get recent performance metrics
- *   - logs: Get recent log entries
- *   - cleanup: Clean up old logs and resolved retries
+ *   - logs: Get recent log entries (super_admin only)
+ *   - cleanup: Clean up old logs and resolved retries (super_admin only)
  */
 
 require __DIR__ . '/../app/bootstrap.php';
 
 use App\Middleware\ApiAuthMiddleware;
+use App\Middleware\RoleMiddleware;
+use App\Services\AuthorizationService;
 use App\Services\HealthMonitorService;
 use App\Services\LoggingService;
 use App\Services\RetryService;
@@ -27,6 +29,15 @@ $apiAuth = new ApiAuthMiddleware([
 ]);
 $apiAuth->handle();
 
+$authorizationService = AuthorizationService::getInstance();
+
+// Helper to check super_admin role
+function requireSuperAdmin(): void
+{
+    $roleMiddleware = new RoleMiddleware();
+    $roleMiddleware->superAdmin();
+}
+
 $action = input('action', 'project');
 
 switch ($action) {
@@ -35,18 +46,22 @@ switch ($action) {
         break;
 
     case 'system':
+        requireSuperAdmin();
         handleSystemHealth();
         break;
 
     case 'safeguards':
+        requireSuperAdmin();
         handleSafeguards();
         break;
 
     case 'logs':
+        requireSuperAdmin();
         handleLogs();
         break;
 
     case 'cleanup':
+        requireSuperAdmin();
         handleCleanup();
         break;
 
@@ -56,9 +71,16 @@ switch ($action) {
 
 function handleProjectHealth(): void
 {
+    global $authorizationService;
+    
     $projectId = (int) input('project_id');
     if (!$projectId) {
         jsonResponse(['error' => 'Project ID is required'], 400);
+        return;
+    }
+
+    if (!$authorizationService->canAccessProject($projectId)) {
+        jsonResponse(['error' => 'Project not found or access denied'], 404);
         return;
     }
 

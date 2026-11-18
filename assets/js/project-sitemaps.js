@@ -153,6 +153,7 @@ async function discoverSitemaps() {
         const formData = new FormData();
         formData.append('action', 'discover');
         formData.append('project_id', projectId);
+        formData.append('csrf_token', getCsrfToken());
         
         const response = await fetch('/api/sitemaps', {
             method: 'POST',
@@ -222,10 +223,12 @@ async function handleAddSitemap(e) {
     addSitemapSubmitBtn.disabled = true;
     addSitemapSubmitBtn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-2"></i>Adding...';
     
-const formData = new FormData(addSitemapForm);
-        formData.append('action', 'add');
-        formData.append('project_id', projectId);
-        
+    const formData = new FormData(addSitemapForm);
+    formData.append('action', 'add');
+    formData.append('project_id', projectId);
+    formData.append('csrf_token', getCsrfToken());
+    
+    try {
         const response = await fetch('/api/sitemaps', {
             method: 'POST',
             body: formData
@@ -272,6 +275,7 @@ async function revalidateSitemap(sitemapId) {
         const formData = new FormData();
         formData.append('action', 'revalidate');
         formData.append('sitemap_id', sitemapId);
+        formData.append('csrf_token', getCsrfToken());
         
         const response = await fetch('/api/sitemaps', {
             method: 'POST',
@@ -305,6 +309,7 @@ async function deleteSitemap(sitemapId) {
         const formData = new FormData();
         formData.append('action', 'delete');
         formData.append('sitemap_id', sitemapId);
+        formData.append('csrf_token', getCsrfToken());
         
         const response = await fetch('/api/sitemaps', {
             method: 'POST',
@@ -340,6 +345,7 @@ async function importUrls(sitemapId) {
         const formData = new FormData();
         formData.append('action', 'import');
         formData.append('sitemap_id', sitemapId);
+        formData.append('csrf_token', getCsrfToken());
         
         const response = await fetch('/api/pages', {
             method: 'POST',
@@ -454,4 +460,12 @@ function showNotification(message, type = 'info') {
 
 function showError(message) {
     alert(message);
+}
+
+/**
+ * Get CSRF token from meta tag
+ */
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
 }

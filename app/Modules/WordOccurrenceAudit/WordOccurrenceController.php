@@ -2,8 +2,9 @@
 
 namespace App\Modules\WordOccurrenceAudit;
 
-use App\Middleware\AuthMiddleware;
+use App\Middleware\ApiAuthMiddleware;
 use App\Services\AuthService;
+use App\Services\AuthorizationService;
 
 /**
  * Word Occurrence Controller
@@ -13,14 +14,16 @@ use App\Services\AuthService;
 class WordOccurrenceController
 {
     private $service;
-    private $authMiddleware;
+    private $apiAuth;
     private $authService;
+    private $authorizationService;
 
     public function __construct()
     {
         $this->service = new WordOccurrenceService();
-        $this->authMiddleware = new AuthMiddleware();
+        $this->apiAuth = new ApiAuthMiddleware(['auth' => true, 'csrf' => true, 'api' => true]);
         $this->authService = new AuthService();
+        $this->authorizationService = AuthorizationService::getInstance();
     }
 
     /**
@@ -28,8 +31,8 @@ class WordOccurrenceController
      */
     public function handle(): void
     {
-        // Protect all routes
-        $this->authMiddleware->handle();
+        // Protect all routes with API auth middleware (includes CSRF for mutating requests)
+        $this->apiAuth->handle();
 
         $action = input('action', 'list');
         $method = isMethod('POST') ? 'POST' : 'GET';
@@ -118,6 +121,11 @@ class WordOccurrenceController
             return;
         }
 
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            jsonResponse(['error' => 'Page not found or access denied'], 404);
+            return;
+        }
+
         $validator = new WordOccurrenceValidator();
         $keywords = $validator->parseKeywords($keywordInput);
 
@@ -152,6 +160,14 @@ class WordOccurrenceController
 
         if (!$pageIds || !is_array($pageIds)) {
             jsonResponse(['error' => 'Page IDs array is required'], 400);
+            return;
+        }
+
+        if (!$this->authorizationService->canAccessProjectPages(
+            (int)input('project_id'),
+            array_map('intval', $pageIds)
+        )) {
+            jsonResponse(['error' => 'One or more pages not found or access denied'], 404);
             return;
         }
 
@@ -194,6 +210,11 @@ class WordOccurrenceController
             return;
         }
 
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
+            return;
+        }
+
         $result = $this->service->auditProject($projectId, (string)$keywordInput, $this->getUserId());
 
         if ($result['success']) {
@@ -225,6 +246,11 @@ class WordOccurrenceController
             return;
         }
 
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
+            return;
+        }
+
         $results = $this->service->getProjectResults($projectId);
 
         jsonResponse([
@@ -242,6 +268,11 @@ class WordOccurrenceController
 
         if (!$projectId) {
             jsonResponse(['error' => 'Project ID is required'], 400);
+            return;
+        }
+
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
             return;
         }
 
@@ -265,6 +296,11 @@ class WordOccurrenceController
             return;
         }
 
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
+            return;
+        }
+
         $history = $this->service->getSearchHistory($projectId);
 
         jsonResponse([
@@ -282,6 +318,11 @@ class WordOccurrenceController
 
         if (!$projectId) {
             jsonResponse(['error' => 'Project ID is required'], 400);
+            return;
+        }
+
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
             return;
         }
 
@@ -303,6 +344,11 @@ class WordOccurrenceController
 
         if (!$searchId || !$projectId) {
             jsonResponse(['error' => 'Search ID and Project ID are required'], 400);
+            return;
+        }
+
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
             return;
         }
 
@@ -330,6 +376,11 @@ class WordOccurrenceController
 
         if (!$pageId) {
             jsonResponse(['error' => 'Page ID is required'], 400);
+            return;
+        }
+
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            jsonResponse(['error' => 'Page not found or access denied'], 404);
             return;
         }
 

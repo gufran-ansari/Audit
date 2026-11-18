@@ -46,6 +46,30 @@ if ($config['debug']) {
 // Set timezone
 date_default_timezone_set('UTC');
 
+// Generate/validate Request ID for correlation
+$requestId = $_SERVER['HTTP_X_REQUEST_ID'] ?? null;
+if ($requestId) {
+    // Validate externally supplied ID - alphanumeric + hyphens only, max 64 chars
+    if (!preg_match('/^[a-zA-Z0-9\-]{1,64}$/', $requestId)) {
+        $requestId = null;
+    }
+}
+if (!$requestId) {
+    $requestId = bin2hex(random_bytes(16)); // 32 char hex
+}
+
+// Store in $_SERVER for application-wide access and $_SESSION for cross-request correlation
+$_SERVER['REQUEST_ID'] = $requestId;
+$_SESSION['request_id'] = $requestId;
+
+// Return Request ID in response header for client correlation
+// Use register_shutdown_function to ensure it's set even on early exit
+register_shutdown_function(function () use ($requestId) {
+    if (!headers_sent()) {
+        header('X-Request-ID: ' . $requestId);
+    }
+});
+
 // Register autoloader
 spl_autoload_register(function ($class) {
     // Convert namespace to file path

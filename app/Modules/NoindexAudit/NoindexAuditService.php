@@ -3,6 +3,7 @@
 namespace App\Modules\NoindexAudit;
 
 use App\Modules\Pages\PageRepository;
+use App\Services\AuthorizationService;
 
 /**
  * Noindex Audit Service
@@ -15,6 +16,7 @@ class NoindexAuditService
     private $processor;
     private $validator;
     private $pageRepository;
+    private $authorizationService;
 
     public function __construct()
     {
@@ -22,6 +24,7 @@ class NoindexAuditService
         $this->processor = new NoindexAuditProcessor();
         $this->validator = new NoindexAuditValidator();
         $this->pageRepository = new PageRepository();
+        $this->authorizationService = AuthorizationService::getInstance();
     }
 
     /**
@@ -29,6 +32,13 @@ class NoindexAuditService
      */
     public function auditPage(int $pageId): array
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return [
+                'success' => false,
+                'error' => 'Page not found or access denied'
+            ];
+        }
+
         if (!$this->validator->validatePageId($pageId)) {
             return [
                 'success' => false,
@@ -82,6 +92,20 @@ class NoindexAuditService
             ];
         }
 
+        // Check authorization for all pages (they should belong to the same project)
+        if (!empty($pageIds)) {
+            $firstPage = $this->pageRepository->findById($pageIds[0]);
+            if ($firstPage) {
+                $projectId = $firstPage['project_id'];
+                if (!$this->authorizationService->canAccessProjectPages($projectId, $pageIds)) {
+                    return [
+                        'success' => false,
+                        'error' => 'One or more pages not found or access denied'
+                    ];
+                }
+            }
+        }
+
         $results = [];
         $successful = 0;
         $failed = 0;
@@ -117,6 +141,13 @@ class NoindexAuditService
      */
     public function auditProject(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [
+                'success' => false,
+                'error' => 'Project not found or access denied'
+            ];
+        }
+
         if (!$this->validator->validateProjectId($projectId)) {
             return [
                 'success' => false,
@@ -144,6 +175,9 @@ class NoindexAuditService
      */
     public function getPageResult(int $pageId): ?array
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return null;
+        }
         return $this->repository->getResultByPage($pageId);
     }
 
@@ -152,6 +186,9 @@ class NoindexAuditService
      */
     public function getProjectResults(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->getResultsByProject($projectId);
     }
 
@@ -160,6 +197,9 @@ class NoindexAuditService
      */
     public function getStats(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->getStats($projectId);
     }
 
@@ -168,6 +208,9 @@ class NoindexAuditService
      */
     public function deleteResult(int $pageId): bool
     {
+        if (!$this->authorizationService->canAccessPage($pageId)) {
+            return false;
+        }
         return $this->repository->delete($pageId);
     }
 
@@ -176,6 +219,9 @@ class NoindexAuditService
      */
     public function deleteProjectResults(int $projectId): bool
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return false;
+        }
         return $this->repository->deleteByProject($projectId);
     }
 }

@@ -1,9 +1,10 @@
 <?php
-
+ 
 namespace App\Services;
-
+ 
 use Database\Database;
-
+use App\Services\AuthorizationService;
+ 
 /**
  * Job Service
  * 
@@ -13,13 +14,15 @@ use Database\Database;
 class JobService
 {
     private $db;
-
+    private $authorizationService;
+ 
     /** Jobs with no heartbeat for this many seconds are considered interrupted */
     private const HEARTBEAT_TIMEOUT_SECONDS = 120;
-
+ 
     public function __construct()
     {
         $this->db = Database::getInstance();
+        $this->authorizationService = AuthorizationService::getInstance();
     }
 
     // ─── CREATION ──────────────────────────────────────────────
@@ -240,19 +243,24 @@ class JobService
 
     // ─── QUERIES ───────────────────────────────────────────────
 
-    /**
+/**
      * Get a job by ID.
      */
     public function getById(int $jobId): ?array
     {
+        // Check authorization
+        if (!$this->authorizationService->canAccessJob($jobId)) {
+            return null;
+        }
+        
         $query = "SELECT aj.*, u.name as created_by_name, p.project_name
                   FROM audit_jobs aj
                   LEFT JOIN users u ON u.id = aj.created_by
                   LEFT JOIN projects p ON p.id = aj.project_id
                   WHERE aj.id = :id";
-
+ 
         $result = $this->db->query($query, ['id' => $jobId]);
-
+ 
         if ($result && isset($result[0])) {
             $row = $result[0];
             $row['selected_modules'] = json_decode($row['selected_modules'], true);
@@ -262,7 +270,7 @@ class JobService
                 : 0;
             return $row;
         }
-
+ 
         return null;
     }
 
@@ -288,23 +296,27 @@ class JobService
         return null;
     }
 
-    /**
+/**
      * Get all jobs for a project (most recent first).
      */
     public function getByProject(int $projectId, int $limit = 50): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
+        
         $query = "SELECT aj.*, u.name as created_by_name
                   FROM audit_jobs aj
                   LEFT JOIN users u ON u.id = aj.created_by
                   WHERE aj.project_id = :project_id
                   ORDER BY aj.created_at DESC
                   LIMIT :limit";
-
+ 
         $jobs = $this->db->query($query, [
             'project_id' => $projectId,
             'limit' => $limit,
         ]) ?: [];
-
+ 
         foreach ($jobs as &$job) {
             $job['selected_modules'] = json_decode($job['selected_modules'], true);
             $job['module_params'] = $job['module_params'] ? json_decode($job['module_params'], true) : null;
@@ -312,7 +324,7 @@ class JobService
                 ? round(($job['processed_pages'] / $job['total_pages']) * 100, 1)
                 : 0;
         }
-
+ 
         return $jobs;
     }
 
@@ -345,18 +357,29 @@ class JobService
         return $jobs;
     }
 
-    /**
+/**
      * Get counts of jobs grouped by status for a project.
      */
     public function getStatusCounts(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [
+                'queued' => 0,
+                'processing' => 0,
+                'paused' => 0,
+                'interrupted' => 0,
+                'completed' => 0,
+                'failed' => 0,
+            ];
+        }
+        
         $query = "SELECT status, COUNT(*) as count
                   FROM audit_jobs
                   WHERE project_id = :project_id
                   GROUP BY status";
-
+ 
         $rows = $this->db->query($query, ['project_id' => $projectId]) ?: [];
-
+ 
         $counts = [
             'queued' => 0,
             'processing' => 0,
@@ -365,22 +388,26 @@ class JobService
             'completed' => 0,
             'failed' => 0,
         ];
-
+ 
         foreach ($rows as $row) {
             $counts[$row['status']] = (int) $row['count'];
         }
-
+ 
         return $counts;
     }
-
+ 
     /**
      * Check if any job is currently running for a project.
      */
     public function isProjectBusy(int $projectId): bool
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return false;
+        }
+        
         $query = "SELECT COUNT(*) as count FROM audit_jobs
                   WHERE project_id = :project_id AND status IN ('queued', 'processing')";
-
+ 
         $result = $this->db->query($query, ['project_id' => $projectId]);
         return $result && (int) $result[0]['count'] > 0;
     }

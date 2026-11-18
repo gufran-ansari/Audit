@@ -8,13 +8,16 @@
 namespace App\Controllers;
 
 use App\Services\AuthService;
+use App\Services\ActivityLogService;
 use App\Middleware\CsrfMiddleware;
 
 class AuthController {
     private $authService;
+    private $activityLog;
     
     public function __construct() {
         $this->authService = new AuthService();
+        $this->activityLog = ActivityLogService::getInstance();
     }
     
     /**
@@ -73,6 +76,12 @@ class AuthController {
         $result = $this->authService->attempt($email, $password);
         
         if (!$result['success']) {
+            // Log failed authentication attempt
+            $this->activityLog->logSecurity('auth_failed', 'Failed login attempt', [
+                'email' => $email,
+                'reason' => $result['message'],
+            ], '/login.php', 'POST');
+            
             flash('error', $result['message']);
             setOld(['email' => $email]);
             redirect('/login.php');
@@ -153,6 +162,12 @@ class AuthController {
         $result = $this->authService->attempt($email, $password);
         
         if (!$result['success']) {
+            // Log failed authentication attempt
+            $this->activityLog->logSecurity('auth_failed', 'Failed API login attempt', [
+                'email' => $email,
+                'reason' => $result['message'],
+            ], '/api/auth', 'POST');
+            
             jsonResponse($result, 401);
         }
 

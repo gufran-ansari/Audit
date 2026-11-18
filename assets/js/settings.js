@@ -61,7 +61,10 @@
     function saveCategory(category, values, callback) {
         fetch(API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
             body: JSON.stringify({ action: 'update', category: category, values: values })
         })
         .then(function (r) { return r.json(); })
@@ -82,7 +85,10 @@
     function createAdmin(data, callback) {
         fetch(API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
             body: JSON.stringify(Object.assign({ action: 'admin_create' }, data))
         })
         .then(function (r) { return r.json(); })
@@ -93,7 +99,10 @@
     function updateAdmin(userId, data, callback) {
         fetch(API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
             body: JSON.stringify(Object.assign({ action: 'admin_update', user_id: userId }, data))
         })
         .then(function (r) { return r.json(); })
@@ -104,7 +113,10 @@
     function deactivateAdmin(userId, callback) {
         fetch(API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
             body: JSON.stringify({ action: 'admin_deactivate', user_id: userId })
         })
         .then(function (r) { return r.json(); })
@@ -115,7 +127,10 @@
     function activateAdmin(userId, callback) {
         fetch(API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
             body: JSON.stringify({ action: 'admin_activate', user_id: userId })
         })
         .then(function (r) { return r.json(); })
@@ -126,7 +141,10 @@
     function resetPassword(userId, password, callback) {
         fetch(API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
             body: JSON.stringify({ action: 'admin_reset_password', user_id: userId, password: password })
         })
         .then(function (r) { return r.json(); })
@@ -473,6 +491,14 @@
         var div = document.createElement('div');
         div.appendChild(document.createTextNode(str));
         return div.innerHTML;
+    }
+
+    /**
+     * Get CSRF token from meta tag
+     */
+    function getCsrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
     }
 
 })();

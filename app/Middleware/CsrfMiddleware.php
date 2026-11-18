@@ -7,6 +7,8 @@
 
 namespace App\Middleware;
 
+use App\Services\ActivityLogService;
+
 class CsrfMiddleware {
     
     /**
@@ -48,6 +50,12 @@ class CsrfMiddleware {
             $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
             
             if (!$token || !self::verifyToken($token)) {
+                // Log CSRF failure
+                $activityLog = ActivityLogService::getInstance();
+                $activityLog->logSecurity('csrf_failed', 'CSRF token validation failed', [
+                    'provided_token' => $token ? substr($token, 0, 8) . '...' : 'missing',
+                ], $_SERVER['REQUEST_URI'] ?? 'unknown', $method);
+                
                 http_response_code(419);
                 die(json_encode([
                     'success' => false,

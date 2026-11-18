@@ -1,10 +1,11 @@
 <?php
-
+ 
 namespace App\Modules\Projects;
-
+ 
 use App\Services\AuthService;
+use App\Services\AuthorizationService;
 use Database\Database;
-
+ 
 /**
  * Project Service
  * 
@@ -15,12 +16,14 @@ class ProjectService
     private $repository;
     private $validator;
     private $authService;
-
+    private $authorizationService;
+ 
     public function __construct()
     {
         $this->repository = new ProjectRepository();
         $this->validator = new ProjectValidator();
         $this->authService = new AuthService();
+        $this->authorizationService = AuthorizationService::getInstance();
     }
 
     /**
@@ -297,14 +300,7 @@ class ProjectService
      */
     private function canAccessProject(array $project): bool
     {
-        // Super admin can access all projects
-        if ($this->authService->isSuperAdmin()) {
-            return true;
-        }
-
-        // Admin can only access their own projects
-        $user = $this->authService->user();
-        return $project['created_by'] == $user['id'];
+        return $this->authorizationService->canAccessProject((int) $project['id']);
     }
 
     /**

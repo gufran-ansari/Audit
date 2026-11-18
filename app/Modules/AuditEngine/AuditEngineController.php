@@ -1,14 +1,15 @@
 <?php
-
+ 
 namespace App\Modules\AuditEngine;
-
-use App\Middleware\AuthMiddleware;
+ 
+use App\Middleware\ApiAuthMiddleware;
 use App\Services\AuthService;
 use App\Services\AuditOrchestrator;
 use App\Services\AuditSummaryService;
+use App\Services\AuthorizationService;
 use App\Services\ModuleRegistry;
 use App\Modules\WordOccurrenceAudit\WordOccurrenceValidator;
-
+ 
 /**
  * Audit Engine Controller
  * 
@@ -20,24 +21,26 @@ class AuditEngineController
 {
     private $orchestrator;
     private $summaryService;
-    private $authMiddleware;
+    private $apiAuth;
     private $authService;
-
+    private $authorizationService;
+ 
     public function __construct()
     {
         $this->orchestrator = new AuditOrchestrator();
         $this->summaryService = new AuditSummaryService();
-        $this->authMiddleware = new AuthMiddleware();
+        $this->apiAuth = new ApiAuthMiddleware(['auth' => true, 'csrf' => true, 'api' => true]);
         $this->authService = new AuthService();
+        $this->authorizationService = AuthorizationService::getInstance();
     }
-
+ 
     /**
      * Handle requests
      */
     public function handle(): void
     {
-        $this->authMiddleware->handle();
-
+        $this->apiAuth->handle();
+ 
         $action = input('action', 'modules');
         $method = isMethod('POST') ? 'POST' : 'GET';
 
@@ -117,7 +120,7 @@ class AuditEngineController
         return $params;
     }
 
-    /**
+/**
      * Run selected modules across an entire project.
      */
     private function runProject(): void
@@ -126,6 +129,12 @@ class AuditEngineController
 
         if (!$projectId) {
             jsonResponse(['error' => 'Project ID is required'], 400);
+            return;
+        }
+
+        // Check authorization
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
             return;
         }
 
@@ -170,7 +179,7 @@ class AuditEngineController
         }
     }
 
-    /**
+/**
      * Run selected modules across specific pages.
      */
     private function runPages(): void
@@ -183,12 +192,24 @@ class AuditEngineController
             return;
         }
 
+        // Check authorization
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
+            return;
+        }
+
         if (is_string($pageIds)) {
             $pageIds = array_filter(array_map('intval', explode(',', $pageIds)));
         }
 
         if (!is_array($pageIds) || empty($pageIds)) {
             jsonResponse(['error' => 'Page IDs are required'], 400);
+            return;
+        }
+
+        // Verify all pages belong to this project and user has access
+        if (!$this->authorizationService->canAccessProjectPages($projectId, $pageIds)) {
+            jsonResponse(['error' => 'One or more pages not found or access denied'], 404);
             return;
         }
 
@@ -264,6 +285,12 @@ class AuditEngineController
 
         if (!$projectId) {
             jsonResponse(['error' => 'Project ID is required'], 400);
+            return;
+        }
+
+        // Check authorization
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            jsonResponse(['error' => 'Project not found or access denied'], 404);
             return;
         }
 

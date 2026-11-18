@@ -9,10 +9,12 @@
 namespace App\Middleware;
 
 use App\Services\AuthService;
+use App\Services\ActivityLogService;
 
 class ApiAuthMiddleware
 {
     private $authService;
+    private $activityLog;
     private $requireAuth = true;
     private $requireCsrf = true;
     private $requiredRoles = [];
@@ -21,6 +23,7 @@ class ApiAuthMiddleware
     public function __construct(array $options = [])
     {
         $this->authService = new AuthService();
+        $this->activityLog = ActivityLogService::getInstance();
         $this->requireAuth = $options['auth'] ?? true;
         $this->requireCsrf = $options['csrf'] ?? true;
         $this->requiredRoles = $options['roles'] ?? [];
@@ -36,7 +39,7 @@ class ApiAuthMiddleware
     {
         // Check authentication
         if ($this->requireAuth && !$this->authService->check()) {
-            $this->fail(401, 'Authentication required');
+            $this->logAndFail(401, 'authz_denied', 'Authentication required');
         }
 
         // If auth not required and user not logged in, skip remaining checks
@@ -75,7 +78,7 @@ class ApiAuthMiddleware
         $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
         
         if (!$token || !\App\Middleware\CsrfMiddleware::verifyToken($token)) {
-            $this->fail(419, 'CSRF token mismatch. Please refresh and try again.');
+            $this->logAndFail(419, 'csrf_failed', 'CSRF token mismatch. Please refresh and try again.');
         }
     }
 
@@ -86,7 +89,7 @@ class ApiAuthMiddleware
     {
         $user = $this->authService->user();
         if (!$user) {
-            $this->fail(401, 'Authentication required');
+            $this->logAndFail(401, 'authz_denied', 'Authentication required');
         }
 
         $userRole = $user['role'] ?? null;
@@ -110,15 +113,23 @@ class ApiAuthMiddleware
         }
 
         if (!$hasRole) {
-            $this->fail(403, 'Insufficient permissions. Required role: ' . implode(' or ', $this->requiredRoles));
+            $this->logAndFail(403, 'authz_denied', 'Insufficient permissions. Required role: ' . implode(' or ', $this->requiredRoles));
         }
     }
 
     /**
-     * Return JSON error response and exit
+     * Log security event and return JSON error response
      */
-    private function fail(int $statusCode, string $message): void
+    private function logAndFail(int $statusCode, string $eventType, string $message): void
     {
+        $endpoint = $_SERVER['REQUEST_URI'] ?? 'unknown';
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'unknown';
+        
+        $this->activityLog->logSecurity($eventType, $message, [
+            'status_code' => $statusCode,
+            'required_roles' => $this->requiredRoles,
+        ], $endpoint, $method);
+
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=utf-8');
         header('X-Content-Type-Options: nosniff');
@@ -129,6 +140,8 @@ class ApiAuthMiddleware
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
+
+    // ... rest of the class remains the same
 
     /**
      * Disable authentication requirement (for public endpoints)

@@ -1,10 +1,11 @@
 <?php
-
+ 
 namespace App\Modules\Sitemaps;
-
+ 
 use App\Modules\Projects\ProjectService;
+use App\Services\AuthorizationService;
 use App\Services\SecureUrlFetcher;
-
+ 
 /**
  * Sitemap Service
  * 
@@ -16,7 +17,8 @@ class SitemapService
     private $validator;
     private $projectService;
     private SecureUrlFetcher $fetcher;
-
+    private $authorizationService;
+ 
     // Common sitemap locations to check
     private $commonLocations = [
         '/sitemap.xml',
@@ -24,12 +26,13 @@ class SitemapService
         '/sitemap1.xml',
         '/sitemap-index.xml'
     ];
-
+ 
     public function __construct()
     {
         $this->repository = new SitemapRepository();
         $this->validator = new SitemapValidator();
         $this->projectService = new ProjectService();
+        $this->authorizationService = AuthorizationService::getInstance();
         $this->fetcher = new SecureUrlFetcher(
             timeout: 30,
             connectTimeout: 10,
@@ -44,6 +47,13 @@ class SitemapService
      */
     public function discoverSitemaps(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [
+                'success' => false,
+                'error' => 'Project not found or access denied'
+            ];
+        }
+        
         $project = $this->projectService->getProject($projectId);
         
         if (!$project) {
@@ -161,6 +171,13 @@ class SitemapService
      */
     public function addSitemap(int $projectId, string $sitemapUrl, string $discoveredFrom = 'manual'): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [
+                'success' => false,
+                'error' => 'Project not found or access denied'
+            ];
+        }
+        
         // Validate URL
         if (!$this->validator->validateUrl($sitemapUrl)) {
             return [
@@ -290,27 +307,40 @@ class SitemapService
         return $result['html'];
     }
 
-    /**
+/**
      * Get all sitemaps for a project
      */
     public function getProjectSitemaps(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->getByProject($projectId);
     }
-
+ 
     /**
      * Get active sitemaps for a project
      */
     public function getActiveSitemaps(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [];
+        }
         return $this->repository->getByStatus($projectId, 'active');
     }
-
+ 
     /**
      * Disable sitemap (prevent imports)
      */
     public function disableSitemap(int $sitemapId): array
     {
+        if (!$this->authorizationService->canAccessSitemap($sitemapId)) {
+            return [
+                'success' => false,
+                'error' => 'Sitemap not found or access denied'
+            ];
+        }
+        
         $sitemap = $this->repository->findById($sitemapId);
         
         if (!$sitemap) {
@@ -340,6 +370,13 @@ class SitemapService
      */
     public function enableSitemap(int $sitemapId): array
     {
+        if (!$this->authorizationService->canAccessSitemap($sitemapId)) {
+            return [
+                'success' => false,
+                'error' => 'Sitemap not found or access denied'
+            ];
+        }
+        
         $sitemap = $this->repository->findById($sitemapId);
         
         if (!$sitemap) {
@@ -364,19 +401,29 @@ class SitemapService
         ];
     }
 
-    /**
+/**
      * Get sitemap by ID
      */
     public function getSitemap(int $sitemapId): ?array
     {
+        if (!$this->authorizationService->canAccessSitemap($sitemapId)) {
+            return null;
+        }
         return $this->repository->findById($sitemapId);
     }
-
+ 
     /**
      * Delete sitemap
      */
     public function deleteSitemap(int $sitemapId): array
     {
+        if (!$this->authorizationService->canAccessSitemap($sitemapId)) {
+            return [
+                'success' => false,
+                'error' => 'Sitemap not found or access denied'
+            ];
+        }
+        
         $sitemap = $this->repository->findById($sitemapId);
         
         if (!$sitemap) {
@@ -406,6 +453,13 @@ class SitemapService
      */
     public function revalidateSitemap(int $sitemapId): array
     {
+        if (!$this->authorizationService->canAccessSitemap($sitemapId)) {
+            return [
+                'success' => false,
+                'error' => 'Sitemap not found or access denied'
+            ];
+        }
+        
         $sitemap = $this->repository->findById($sitemapId);
         
         if (!$sitemap) {
@@ -449,6 +503,15 @@ class SitemapService
      */
     public function getSitemapStats(int $projectId): array
     {
+        if (!$this->authorizationService->canAccessProject($projectId)) {
+            return [
+                'total_sitemaps' => 0,
+                'validated' => 0,
+                'invalid' => 0,
+                'unreachable' => 0,
+                'total_urls' => 0
+            ];
+        }
         return $this->repository->getStats($projectId);
     }
 }

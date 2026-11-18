@@ -85,6 +85,10 @@ $csrfToken = CsrfMiddleware::getToken() ?: CsrfMiddleware::generateToken();
                         <i class="bi bi-gear text-lg mr-3"></i>
                         <span>Settings</span>
                     </a>
+                    <a href="security.php" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
+                        <i class="bi bi-shield-lock text-lg mr-3"></i>
+                        <span>Security</span>
+                    </a>
                 </div>
             </nav>
 

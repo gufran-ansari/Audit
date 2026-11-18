@@ -8,6 +8,7 @@
 require __DIR__ . '/app/bootstrap.php';
 
 use App\Middleware\AuthMiddleware;
+use App\Middleware\CsrfMiddleware;
 use App\Services\AuthService;
 use App\Modules\Projects\ProjectService;
 use App\Modules\Sitemaps\SitemapService;
@@ -38,6 +39,9 @@ if (!$project) {
     exit;
 }
 
+// Generate CSRF token for AJAX requests
+$csrfToken = CsrfMiddleware::getToken() ?: CsrfMiddleware::generateToken();
+
 // Get sitemap statistics
 $sitemapService = new SitemapService();
 $sitemapStats = $sitemapService->getSitemapStats($project['id']);
@@ -48,6 +52,7 @@ $sitemapStats = $sitemapService->getSitemapStats($project['id']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken) ?>">
     <title><?= htmlspecialchars($project['project_name']) ?> - Audit withGufran</title>
     
     <!-- Tailwind CSS -->
@@ -107,6 +112,10 @@ $sitemapStats = $sitemapService->getSitemapStats($project['id']);
                     <a href="settings.php" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
                         <i class="bi bi-gear text-lg mr-3"></i>
                         <span>Settings</span>
+                    </a>
+                    <a href="security.php" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
+                        <i class="bi bi-shield-lock text-lg mr-3"></i>
+                        <span>Security</span>
                     </a>
                     <?php endif; ?>
                 </div>

@@ -17,7 +17,9 @@
 require __DIR__ . '/../app/bootstrap.php';
 
 use App\Middleware\ApiAuthMiddleware;
+use App\Services\ActivityLogService;
 use App\Services\AuthService;
+use App\Services\AuthorizationService;
 use App\Services\JobService;
 use App\Services\ModuleRegistry;
 use App\Jobs\JobProcessor;
@@ -30,6 +32,8 @@ $isCronRequest = php_sapi_name() === 'cli' ||
     (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'cron') !== false) ||
     (isset($_SERVER['HTTP_X_CRON']) && $_SERVER['HTTP_X_CRON'] === '1');
 
+$activityLog = ActivityLogService::getInstance();
+
 // Use new ApiAuthMiddleware for consistent API authentication
 $apiAuth = new ApiAuthMiddleware([
     'auth' => true,
@@ -37,6 +41,8 @@ $apiAuth = new ApiAuthMiddleware([
     'api' => $isApiRequest
 ]);
 $apiAuth->handle();
+
+$authorizationService = AuthorizationService::getInstance();
 
 $action = input('action', 'list');
 $method = isMethod('POST') ? 'POST' : 'GET';
@@ -112,6 +118,8 @@ switch ($action) {
 
 function handleCreate(JobService $jobService): void
 {
+    global $activityLog;
+    
     if (!isMethod('POST')) {
         jsonResponse(['error' => 'Method not allowed'], 405);
         return;
@@ -172,6 +180,15 @@ function handleCreate(JobService $jobService): void
         'batch_size' => (int) (input('batch_size') ?: 25),
     ]);
 
+    $activityLog->log(
+        'job_created',
+        "Audit job created for project",
+        $projectId,
+        ['modules' => $moduleKeys, 'batch_size' => $job['batch_size'], 'total_pages' => $job['total_pages']],
+        'job',
+        $job['id']
+    );
+
     jsonResponse([
         'success' => true,
         'message' => 'Audit job created and queued',
@@ -181,6 +198,8 @@ function handleCreate(JobService $jobService): void
 
 function handleProcess(): void
 {
+    global $activityLog;
+    
     // Increase time limit for background processing
     set_time_limit(120);
 
@@ -199,6 +218,17 @@ function handleProcess(): void
         $jobService = new JobService();
         $job = $jobService->getById($jobId);
 
+        if ($job) {
+            $activityLog->log(
+                'job_processed',
+                "Job batch processed",
+                $job['project_id'],
+                ['job_id' => $jobId, 'status' => $job['status'], 'progress' => $job['progress_percent']],
+                'job',
+                $jobId
+            );
+        }
+
         jsonResponse([
             'success' => true,
             'message' => 'Processed job batch',
@@ -210,6 +240,8 @@ function handleProcess(): void
 
 function handleRun(): void
 {
+    global $activityLog;
+    
     if (!isMethod('POST')) {
         jsonResponse(['error' => 'Method not allowed'], 405);
         return;
@@ -231,6 +263,17 @@ function handleRun(): void
     $jobService = new JobService();
     $job = $jobService->getById($jobId);
 
+    if ($job) {
+        $activityLog->log(
+            'job_run',
+            "Job run completed",
+            $job['project_id'],
+            ['job_id' => $jobId, 'status' => $job['status'], 'progress' => $job['progress_percent']],
+            'job',
+            $jobId
+        );
+    }
+
     jsonResponse([
         'success' => true,
         'job' => $job,
@@ -242,6 +285,12 @@ function handleStatus(JobService $jobService): void
     $jobId = (int) input('job_id');
     if (!$jobId) {
         jsonResponse(['error' => 'Job ID is required'], 400);
+        return;
+    }
+
+    global $authorizationService;
+    if (!$authorizationService->canAccessJob($jobId)) {
+        jsonResponse(['error' => 'Job not found'], 404);
         return;
     }
 
@@ -302,7 +351,27 @@ function handlePause(JobService $jobService): void
         return;
     }
 
+    global $authorizationService;
+    if (!$authorizationService->canAccessJob($jobId)) {
+        jsonResponse(['error' => 'Job not found'], 404);
+        return;
+    }
+
     $success = $jobService->pauseJob($jobId);
+
+    if ($success) {
+        $job = $jobService->getById($jobId);
+        if ($job) {
+            $activityLog->log(
+                'job_paused',
+                "Job paused by user",
+                $job['project_id'],
+                ['job_id' => $jobId],
+                'job',
+                $jobId
+            );
+        }
+    }
 
     jsonResponse([
         'success' => $success,
@@ -312,6 +381,8 @@ function handlePause(JobService $jobService): void
 
 function handleCancel(JobService $jobService): void
 {
+    global $activityLog;
+    
     if (!isMethod('POST')) {
         jsonResponse(['error' => 'Method not allowed'], 405);
         return;
@@ -323,7 +394,28 @@ function handleCancel(JobService $jobService): void
         return;
     }
 
+    global $authorizationService;
+    if (!$authorizationService->canAccessJob($jobId)) {
+        jsonResponse(['error' => 'Job not found'], 404);
+        return;
+    }
+
+    // Get job details before cancellation for logging
+    $job = $jobService->getById($jobId);
+    $projectId = $job ? $job['project_id'] : null;
+
     $success = $jobService->failJob($jobId, 'Cancelled by user');
+
+    if ($success && $job) {
+        $activityLog->log(
+            'job_cancelled',
+            "Job cancelled by user",
+            $projectId,
+            ['job_id' => $jobId],
+            'job',
+            $jobId
+        );
+    }
 
     jsonResponse([
         'success' => $success,
@@ -339,6 +431,12 @@ function handleLogs(JobService $jobService): void
         return;
     }
 
+    global $authorizationService;
+    if (!$authorizationService->canAccessJob($jobId)) {
+        jsonResponse(['error' => 'Job not found'], 404);
+        return;
+    }
+
     $logs = $jobService->getLogs($jobId);
 
     jsonResponse([
@@ -351,6 +449,8 @@ function handleLogs(JobService $jobService): void
 
 function handleResume(): void
 {
+    global $activityLog;
+    
     if (!isMethod('POST')) {
         jsonResponse(['error' => 'Method not allowed'], 405);
         return;
@@ -362,8 +462,30 @@ function handleResume(): void
         return;
     }
 
+    global $authorizationService;
+    if (!$authorizationService->canAccessJob($jobId)) {
+        jsonResponse(['error' => 'Job not found'], 404);
+        return;
+    }
+
+    // Get job details before resume for logging
+    $jobService = new JobService();
+    $job = $jobService->getById($jobId);
+    $projectId = $job ? $job['project_id'] : null;
+
     $resumeService = new \App\Services\ResumeService();
     $success = $resumeService->resumeJob($jobId);
+
+    if ($success && $job) {
+        $activityLog->log(
+            'job_resumed',
+            "Job resumed and re-queued",
+            $projectId,
+            ['job_id' => $jobId],
+            'job',
+            $jobId
+        );
+    }
 
     jsonResponse([
         'success' => $success,
@@ -373,6 +495,8 @@ function handleResume(): void
 
 function handleResumeAll(): void
 {
+    global $activityLog;
+    
     if (!isMethod('POST')) {
         jsonResponse(['error' => 'Method not allowed'], 405);
         return;
@@ -384,8 +508,25 @@ function handleResumeAll(): void
         return;
     }
 
+    global $authorizationService;
+    if (!$authorizationService->canAccessProject($projectId)) {
+        jsonResponse(['error' => 'Project not found or access denied'], 404);
+        return;
+    }
+
     $resumeService = new \App\Services\ResumeService();
     $count = $resumeService->resumeAllInterrupted($projectId);
+
+    if ($count > 0) {
+        $activityLog->log(
+            'jobs_resumed_bulk',
+            "{$count} interrupted job(s) resumed for project",
+            $projectId,
+            ['resumed_count' => $count],
+            'job',
+            null
+        );
+    }
 
     jsonResponse([
         'success' => true,
@@ -396,6 +537,8 @@ function handleResumeAll(): void
 
 function handleRetry(): void
 {
+    global $activityLog;
+    
     if (!isMethod('POST')) {
         jsonResponse(['error' => 'Method not allowed'], 405);
         return;
@@ -404,6 +547,12 @@ function handleRetry(): void
     $projectId = (int) input('project_id');
     if (!$projectId) {
         jsonResponse(['error' => 'Project ID is required'], 400);
+        return;
+    }
+
+    global $authorizationService;
+    if (!$authorizationService->canAccessProject($projectId)) {
+        jsonResponse(['error' => 'Project not found or access denied'], 404);
         return;
     }
 
@@ -455,6 +604,15 @@ function handleRetry(): void
         return;
     }
 
+    $activityLog->log(
+        'job_retry_created',
+        "Retry job created for project",
+        $projectId,
+        ['modules' => $moduleKeys, 'original_job_id' => $job['id']],
+        'job',
+        $job['id']
+    );
+
     jsonResponse([
         'success' => true,
         'message' => 'Retry job created',
@@ -467,6 +625,12 @@ function handleRetryStats(): void
     $projectId = (int) input('project_id');
     if (!$projectId) {
         jsonResponse(['error' => 'Project ID is required'], 400);
+        return;
+    }
+
+    global $authorizationService;
+    if (!$authorizationService->canAccessProject($projectId)) {
+        jsonResponse(['error' => 'Project not found or access denied'], 404);
         return;
     }
 
@@ -486,6 +650,12 @@ function handleRecoverable(): void
     $projectId = (int) input('project_id');
     if (!$projectId) {
         jsonResponse(['error' => 'Project ID is required'], 400);
+        return;
+    }
+
+    global $authorizationService;
+    if (!$authorizationService->canAccessProject($projectId)) {
+        jsonResponse(['error' => 'Project not found or access denied'], 404);
         return;
     }
 

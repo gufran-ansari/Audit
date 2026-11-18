@@ -2,7 +2,8 @@
 
 namespace App\Modules\Overrides;
 
-use App\Middleware\AuthMiddleware;
+use App\Middleware\ApiAuthMiddleware;
+use App\Services\ActivityLogService;
 
 /**
  * Override Controller
@@ -13,17 +14,19 @@ use App\Middleware\AuthMiddleware;
 class OverrideController
 {
     private OverrideService $service;
-    private AuthMiddleware $authMiddleware;
+    private ApiAuthMiddleware $apiAuth;
+    private ActivityLogService $activityLog;
 
     public function __construct()
     {
         $this->service = new OverrideService();
-        $this->authMiddleware = new AuthMiddleware();
+        $this->apiAuth = new ApiAuthMiddleware(['auth' => true, 'csrf' => true, 'api' => true]);
+        $this->activityLog = ActivityLogService::getInstance();
     }
 
     public function handle(): void
     {
-        $this->authMiddleware->handle();
+        $this->apiAuth->handle();
 
         $action = input('action', 'list');
         $method = isMethod('POST') ? 'POST' : 'GET';
@@ -91,6 +94,22 @@ class OverrideController
         $result = $this->service->setOverride($pageId, $moduleName, $originalStatus, $overrideStatus, $notes);
 
         if ($result['success']) {
+            $override = $result['override'];
+            $this->activityLog->log(
+                'override_set',
+                "Override set for {$moduleName}: {$originalStatus} → {$overrideStatus}",
+                $override['project_id'] ?? null,
+                [
+                    'page_id' => $pageId,
+                    'module' => $moduleName,
+                    'original_status' => $originalStatus,
+                    'override_status' => $overrideStatus,
+                    'notes' => $notes,
+                ],
+                'override',
+                $override['id']
+            );
+            
             jsonResponse(['success' => true, 'override' => $result['override']]);
         } else {
             jsonResponse(['success' => false, 'error' => $result['error']], 422);
@@ -110,9 +129,28 @@ class OverrideController
             return;
         }
 
+        // Get override details before removal for logging
+        $existing = $this->service->getOverride($pageId, $moduleName);
+        $overrideId = $existing ? $existing['id'] : null;
+        $projectId = $existing ? ($existing['project_id'] ?? null) : null;
+        $oldStatus = $existing ? $existing['override_status'] : null;
+
         $result = $this->service->removeOverride($pageId, $moduleName);
 
         if ($result['success']) {
+            $this->activityLog->log(
+                'override_removed',
+                "Override removed for {$moduleName} (was: {$oldStatus})",
+                $projectId,
+                [
+                    'page_id' => $pageId,
+                    'module' => $moduleName,
+                    'previous_status' => $oldStatus,
+                ],
+                'override',
+                $overrideId
+            );
+            
             jsonResponse(['success' => true, 'message' => $result['message']]);
         } else {
             jsonResponse(['success' => false, 'error' => $result['error']], 422);

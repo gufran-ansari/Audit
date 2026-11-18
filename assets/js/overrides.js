@@ -241,7 +241,10 @@
 
         fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
             body: JSON.stringify({
                 action: 'set',
                 page_id: pageId,
@@ -279,7 +282,10 @@
 
         fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
             body: JSON.stringify({
                 action: 'remove',
                 page_id: pageId,
@@ -397,6 +403,14 @@
         } catch (e) {
             return dateStr;
         }
+    }
+
+    /**
+     * Get CSRF token from meta tag
+     */
+    function getCsrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
     }
 
 })();

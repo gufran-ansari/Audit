@@ -6,6 +6,7 @@
  * - Clears expired cache entries
  * - Clears stale rate limit files
  * - Rotates old log files
+ * - Cleans up old activity log entries (retention)
  * - Reports system health
  * 
  * Schedule: Run daily
@@ -17,6 +18,7 @@ ini_set('memory_limit', '128M');
 
 require __DIR__ . '/../app/bootstrap.php';
 
+use App\Services\ActivityLogService;
 use App\Services\CacheService;
 use App\Services\RateLimiter;
 
@@ -48,7 +50,12 @@ if (is_dir($logDir)) {
 }
 echo "  Logs: {$logsRemoved} old log files removed\n";
 
-// 4. Report storage usage
+// 4. Clean up old activity log entries (retention: 90 days default)
+$activityLog = ActivityLogService::getInstance();
+$activityLogsRemoved = $activityLog->cleanupOldLogs(90, 1000);
+echo "  Activity logs: {$activityLogsRemoved} old entries removed (90-day retention)\n";
+
+// 5. Report storage usage
 $storageDir = __DIR__ . '/../storage';
 $totalSize = 0;
 $iterator = new RecursiveIteratorIterator(
